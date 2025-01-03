@@ -1,1814 +1,1404 @@
-/**
- * YouTube Channel: https://youtube.com/@AM_CLUB
- * GitHub Repository: https://github.com/amclubs
- * Telegram Group: https://t.me/AM_CLUBS
- * Personal Blog: https://am.809098.xyz
- */
-
-// @ts-ignore
-import { connect } from 'cloudflare:sockets';
-
-// Generate your own UUID using the following command in PowerShell:
-// Powershell -NoExit -Command "[guid]::NewGuid()"
-let userID = '88deb2d4-96e2-448b-b9c6-6e2a5f26fc8f';
-
-// Proxy IPs to choose from
-let proxyIPs = [
-	'proxyip.amclubs.camdvr.org',
-	'proxyip.amclubs.kozow.com'
-];
-// Randomly select a proxy IP from the list
-let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
-let proxyPort = 443;
-let proxyIpTxt = atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vcHJveHlpcC50eHQ=');
-
-// Setting the socks5 will ignore proxyIP
-// Example:  user:pass@host:port  or  host:port
-let socks5 = '';
-let socks5Enable = false;
-let parsedSocks5 = {};
-
-// https://cloudflare-dns.com/dns-query or https://dns.google/dns-query
-// DNS-over-HTTPS URL
-let dohURL = 'https://sky.rethinkdns.com/1:-Pf_____9_8A_AMAIgE8kMABVDDmKOHTAKg=';
-
-// Preferred address API interface
-let ipUrl = [
-
-];
-let ipUrlTxt = [
-	atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vaXB2NC50eHQ=')
-];
-let ipUrlCsv = [
-	// atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2FtY2x1YnMvYW0tY2YtdHVubmVsL21haW4vaXB2NC5jc3Y=')
-];
-// Preferred addresses with optional TLS subscription
-let ipLocal = [
-	'visa.cn:443#youtube.com/@AM_CLUB 订阅频道获取更多教程',
-	'icook.hk#t.me/AM_CLUBS 加入交流群解锁更多优选节点',
-	'time.is#github.com/amclubs GitHub仓库查看更多项目'
-];
-let noTLS = 'false';
-let sl = 5;
-
-let tagName = atob('YW1jbHVicw==');
-let subUpdateTime = 6; // Subscription update time in hours
-let timestamp = 4102329600000; // Timestamp for the end date (2099-12-31)
-let total = 99 * 1125899906842624; // PB (perhaps referring to bandwidth or total entries)
-let download = Math.floor(Math.random() * 1099511627776);
-let upload = download;
-
-// Network protocol type
-let network = 'ws'; // WebSocket
-
-// Fake UUID and hostname for configuration generation
-let fakeUserID;
-let fakeHostName;
-
-// Subscription and conversion details
-let subProtocol = 'https';
-let subConverter = atob('dXJsLnYxLm1r'); // Subscription conversion backend using Sheep's function
-let subConfig = "https://raw.githubusercontent.com/amclubs/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini"; // Subscription profile
-let fileName = 'AM%E7%A7%91%E6%8A%80';
-let isBase64 = true;
-
-let botToken = '';
-let chatID = '';
-
-let projectName = atob('YW1jbHVicy9hbS1jZi10dW5uZWw');
-let ytName = atob('aHR0cHM6Ly95b3V0dWJlLmNvbS9AQU1fQ0xVQg==');
-const httpPattern = /^http(s)?:\/\/.+/;
-
-if (!isValidUUID(userID)) {
-	throw new Error('uuid is invalid');
-}
-
-export default {
-	/**
-	 * @param {import("@cloudflare/workers-types").Request} request
-	 * @param {{UUID: string, PROXYIP: string, DNS_RESOLVER_URL: string, NODE_ID: int, API_HOST: string, API_TOKEN: string}} env
-	 * @param {import("@cloudflare/workers-types").ExecutionContext} ctx
-	 * @returns {Promise<Response>}
-	*/
-	async fetch(request, env, ctx) {
-		try {
-			let {
-				UUID,
-				PROXYIP,
-				SOCKS5,
-				DNS_RESOLVER_URL,
-				IP_LOCAL,
-				IP_URL,
-				IP_URL_TXT,
-				IP_URL_CSV,
-				NO_TLS,
-				SL,
-				SUB_CONFIG,
-				SUB_CONVERTER,
-				SUB_NAME,
-				CF_EMAIL,
-				CF_KEY,
-				CF_ID = 0,
-				TG_TOKEN,
-				TG_ID,
-				//兼容
-				ADDRESSESAPI,
-			} = env;
-			userID = (UUID || userID).toLowerCase();
-
-			const url = new URL(request.url);
-
-			PROXYIP = url.searchParams.get('PROXYIP') || PROXYIP;
-			if (PROXYIP) {
-				if (httpPattern.test(PROXYIP)) {
-					let proxyIpTxt = await addIpText(PROXYIP);
-					let ipUrlTxtAndCsv;
-					if (PROXYIP.endsWith('.csv')) {
-						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, null, proxyIpTxt);
-
-					} else {
-						ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxt, null);
-					}
-					const uniqueIpTxt = [...new Set([...ipUrlTxtAndCsv.txt, ...ipUrlTxtAndCsv.csv])];
-					proxyIP = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
-				} else {
-					proxyIPs = await addIpText(PROXYIP);
-					proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
-				}
-			} else {
-				let proxyIpTxts = await addIpText(proxyIpTxt);
-				let ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, proxyIpTxts, null);
-				let updatedIps = ipUrlTxtAndCsv.txt.map(ip => `${tagName}${download}.${ip}`);
-				const uniqueIpTxt = [...new Set([...updatedIps, ...proxyIPs])];
-				proxyIP = uniqueIpTxt[Math.floor(Math.random() * uniqueIpTxt.length)];
-			}
-			const [ip, port] = proxyIP.split(':');
-			proxyIP = ip;
-			proxyPort = port || proxyPort;
-
-			socks5 = url.searchParams.get('SOCKS5') || SOCKS5 || socks5;
-			parsedSocks5 = await parseSocks5FromUrl(socks5, url);
-			if (parsedSocks5) {
-				socks5Enable = true;
-			}
-
-			dohURL = url.searchParams.get('DNS_RESOLVER_URL') || DNS_RESOLVER_URL || dohURL;
-
-			IP_LOCAL = url.searchParams.get('IP_LOCAL') || IP_LOCAL;
-			if (IP_LOCAL) {
-				ipLocal = await addIpText(IP_LOCAL);
-			}
-			const newCsvUrls = [];
-			const newTxtUrls = [];
-			IP_URL = url.searchParams.get('IP_URL') || IP_URL;
-			if (IP_URL) {
-				ipUrlTxt = [];
-				ipUrl = await addIpText(IP_URL);
-				ipUrl = await getIpUrlTxt(ipUrl);
-				ipUrl.forEach(url => {
-					if (url.endsWith('.csv')) {
-						newCsvUrls.push(url);
-					} else {
-						newTxtUrls.push(url);
-					}
-				});
-			}
-			//兼容旧的，如果有IP_URL_TXT新的则不用旧的
-			ADDRESSESAPI = url.searchParams.get('ADDRESSESAPI') || ADDRESSESAPI;
-			IP_URL_TXT = url.searchParams.get('IP_URL_TXT') || IP_URL_TXT;
-			IP_URL_CSV = url.searchParams.get('IP_URL_CSV') || IP_URL_CSV;
-			if (ADDRESSESAPI) {
-				ipUrlTxt = await addIpText(ADDRESSESAPI);
-			}
-			if (IP_URL_TXT) {
-				ipUrlTxt = await addIpText(IP_URL_TXT);
-			}
-			if (IP_URL_CSV) {
-				ipUrlCsv = await addIpText(IP_URL_CSV);
-			}
-			ipUrlCsv = [...new Set([...ipUrlCsv, ...newCsvUrls])];
-			ipUrlTxt = [...new Set([...ipUrlTxt, ...newTxtUrls])];
-
-			noTLS = url.searchParams.get('NO_TLS') || NO_TLS || noTLS;
-			sl = url.searchParams.get('SL') || SL || sl;
-			subConfig = url.searchParams.get('SUB_CONFIG') || SUB_CONFIG || subConfig;
-			subConverter = url.searchParams.get('SUB_CONVERTER') || SUB_CONVERTER || subConverter;
-			fileName = url.searchParams.get('SUB_NAME') || SUB_NAME || fileName;
-			botToken = url.searchParams.get('TG_TOKEN') || TG_TOKEN || botToken;
-			chatID = url.searchParams.get('TG_ID') || TG_ID || chatID;
-
-			// Unified protocol for handling subconverters
-			const [subProtocol, subConverterWithoutProtocol] = (subConverter.startsWith("http://") || subConverter.startsWith("https://"))
-				? subConverter.split("://")
-				: [undefined, subConverter];
-			subConverter = subConverterWithoutProtocol;
-
-			// console.log(`proxyIPs: ${proxyIPs} \n proxyIP: ${proxyIP} \n ipLocal: ${ipLocal} \n ipUrl: ${ipUrl} \n ipUrlTxt: ${ipUrlTxt} `);
-
-			//const uuid = url.searchParams.get('uuid')?.toLowerCase() || 'null';
-			const ua = request.headers.get('User-Agent') || 'null';
-			const userAgent = ua.toLowerCase();
-			const host = request.headers.get('Host');
-			const upgradeHeader = request.headers.get('Upgrade');
-			const expire = Math.floor(timestamp / 1000);
-
-			// If WebSocket upgrade, handle WebSocket request
-			if (upgradeHeader === 'websocket') {
-				return await channelOverWSHandler(request);
-			}
-
-			fakeUserID = await getFakeUserID(userID);
-			fakeHostName = fakeUserID.slice(6, 9) + "." + fakeUserID.slice(13, 19);
-			console.log(`userID: ${userID}`);
-			console.log(`fakeUserID: ${fakeUserID}`);
-			// Handle routes based on the path
-			switch (url.pathname.toLowerCase()) {
-				case '/': {
-					return new Response(await nginx(), {
-						headers: {
-							'Content-Type': 'text/html; charset=UTF-8',
-							'referer': 'https://www.google.com/search?q=' + fileName,
-						},
-					});
-				}
-
-				case `/${fakeUserID}`: {
-					// Disguise UUID node generation
-					const fakeConfig = await getchannelConfig(userID, host, 'CF-FAKE-UA', url);
-					return new Response(fakeConfig, { status: 200 });
-				}
-
-				case `/${userID}`: {
-					// Handle real UUID requests and get node info
-					await sendMessage(
-						`#获取订阅 ${fileName}`,
-						request.headers.get('CF-Connecting-IP'),
-						`UA: ${userAgent}\n域名: ${url.hostname}\n入口: ${url.pathname + url.search}`
-					);
-
-					const channelConfig = await getchannelConfig(userID, host, userAgent, url);
-					const isMozilla = userAgent.includes('mozilla');
-
-					const config = await getCFConfig(CF_EMAIL, CF_KEY, CF_ID);
-					if (CF_EMAIL && CF_KEY) {
-						({ upload, download, total } = config);
-					}
-
-					// Prepare common headers
-					const commonHeaders = {
-						"Content-Type": isMozilla ? "text/html;charset=utf-8" : "text/plain;charset=utf-8",
-						"Profile-Update-Interval": `${subUpdateTime}`,
-						"Subscription-Userinfo": `upload=${upload}; download=${download}; total=${total}; expire=${expire}`,
-					};
-
-					// Add download headers if not a Mozilla browser
-					if (!isMozilla) {
-						commonHeaders["Content-Disposition"] = `attachment; filename=${fileName}; filename*=gbk''${fileName}`;
-					}
-
-					return new Response(channelConfig, {
-						status: 200,
-						headers: commonHeaders,
-					});
-				}
-
-				default: {
-					// Serve the default nginx disguise page
-					return new Response(await nginx(), {
-						headers: {
-							'Content-Type': 'text/html; charset=UTF-8',
-							'referer': 'https://www.google.com/search?q=' + fileName,
-						},
-					});
-				}
-			}
-		} catch (err) {
-			// Log error for debugging purposes
-			console.error('Error processing request:', err);
-			return new Response(`Error: ${err.message}`, { status: 500 });
+function __cf_cjs(esm) {
+  const cjs = 'default' in esm ? esm.default : {};
+	for (const [k, v] of Object.entries(esm)) {
+		if (k !== 'default') {
+			Object.defineProperty(cjs, k, {
+				enumerable: true,
+				value: v,
+			});
 		}
-	},
+	}
+	return cjs;
+}
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
 };
 
+// node_modules/wrangler/_virtual_unenv_global_polyfill-clear$immediate.js
+globalThis.clearImmediate = clearImmediateFallback;
 
-/** ---------------------Tools------------------------------ */
-
-export async function hashHex_f(string) {
-	const encoder = new TextEncoder();
-	const data = encoder.encode(string);
-	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
-	return hashHex;
+// node_modules/unenv/runtime/_internal/utils.mjs
+function createNotImplementedError(name) {
+  return new Error(`[unenv] ${name} is not implemented yet!`);
 }
-
-/**
- * Checks if a given string is a valid UUID.
- * Note: This is not a real UUID validation.
- * @param {string} uuid The string to validate as a UUID.
- * @returns {boolean} True if the string is a valid UUID, false otherwise.
- */
-function isValidUUID(uuid) {
-	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-	return uuidRegex.test(uuid);
+__name(createNotImplementedError, "createNotImplementedError");
+function notImplemented(name) {
+  const fn2 = /* @__PURE__ */ __name(() => {
+    throw createNotImplementedError(name);
+  }, "fn");
+  return Object.assign(fn2, { __unenv__: true });
 }
-
-const byteToHex = [];
-for (let i = 0; i < 256; ++i) {
-	byteToHex.push((i + 256).toString(16).slice(1));
-}
-
-function unsafeStringify(arr, offset = 0) {
-	return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-
-function stringify(arr, offset = 0) {
-	const uuid = unsafeStringify(arr, offset);
-	if (!isValidUUID(uuid)) {
-		throw TypeError("Stringified UUID is invalid");
-	}
-	return uuid;
-}
-
-async function getFakeUserID(userID) {
-	const date = new Date().toISOString().split('T')[0];
-	const rawString = `${userID}-${date}`;
-
-	const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawString));
-	const hashArray = Array.from(new Uint8Array(hashBuffer)).map(b => ('00' + b.toString(16)).slice(-2)).join('');
-
-	return `${hashArray.substring(0, 8)}-${hashArray.substring(8, 12)}-${hashArray.substring(12, 16)}-${hashArray.substring(16, 20)}-${hashArray.substring(20, 32)}`;
-}
-
-function revertFakeInfo(content, userID, hostName) {
-	//console.log(`revertFakeInfo-->: isBase64 ${isBase64} \n content: ${content}`);
-	if (isBase64) {
-		content = atob(content);//Base64 decrypt
-	}
-	content = content.replace(new RegExp(fakeUserID, 'g'), userID).replace(new RegExp(fakeHostName, 'g'), hostName);
-	if (isBase64) {
-		content = btoa(content);//Base64 encryption
-	}
-	return content;
-}
-
-/**
- * Decodes a base64 string into an ArrayBuffer.
- * @param {string} base64Str The base64 string to decode.
- * @returns {{earlyData: ArrayBuffer|null, error: Error|null}} An object containing the decoded ArrayBuffer or null if there was an error, and any error that occurred during decoding or null if there was no error.
- */
-function base64ToArrayBuffer(base64Str) {
-	if (!base64Str) {
-		return { earlyData: null, error: null };
-	}
-	try {
-		// go use modified Base64 for URL rfc4648 which js atob not support
-		base64Str = base64Str.replace(/-/g, '+').replace(/_/g, '/');
-		const decode = atob(base64Str);
-		const arryBuffer = Uint8Array.from(decode, (c) => c.charCodeAt(0));
-		return { earlyData: arryBuffer.buffer, error: null };
-	} catch (error) {
-		return { earlyData: null, error };
-	}
-}
-
-async function addIpText(envAdd) {
-	var addText = envAdd.replace(/[	|"'\r\n]+/g, ',').replace(/,+/g, ',');
-	//console.log(addText);
-	if (addText.charAt(0) == ',') {
-		addText = addText.slice(1);
-	}
-	if (addText.charAt(addText.length - 1) == ',') {
-		addText = addText.slice(0, addText.length - 1);
-	}
-	const add = addText.split(',');
-	// console.log(add);
-	return add;
-}
-
-function socks5Parser(socks5) {
-	let [latter, former] = socks5.split("@").reverse();
-	let username, password, hostname, port;
-
-	if (former) {
-		const formers = former.split(":");
-		if (formers.length !== 2) {
-			throw new Error('Invalid SOCKS address format: authentication must be in the "username:password" format');
-		}
-		[username, password] = formers;
-	}
-
-	const latters = latter.split(":");
-	port = Number(latters.pop());
-	if (isNaN(port)) {
-		throw new Error('Invalid SOCKS address format: port must be a number');
-	}
-
-	hostname = latters.join(":");
-	const isIPv6 = hostname.includes(":") && !/^\[.*\]$/.test(hostname);
-	if (isIPv6) {
-		throw new Error('Invalid SOCKS address format: IPv6 addresses must be enclosed in brackets, e.g., [2001:db8::1]');
-	}
-
-	//console.log(`socks5Parser-->: username ${username} \n password: ${password} \n hostname: ${hostname} \n port: ${port}`);
-	return { username, password, hostname, port };
-}
-
-async function parseSocks5FromUrl(socks5, url) {
-	if (/\/socks5?=/.test(url.pathname)) {
-		socks5 = url.pathname.split('5=')[1];
-	} else if (/\/socks[5]?:\/\//.test(url.pathname)) {
-		socks5 = url.pathname.split('://')[1].split('#')[0];
-	}
-
-	const authIdx = socks5.indexOf('@');
-	if (authIdx !== -1) {
-		let userPassword = socks5.substring(0, authIdx);
-		const base64Regex = /^(?:[A-Z0-9+/]{4})*(?:[A-Z0-9+/]{2}==|[A-Z0-9+/]{3}=)?$/i;
-		if (base64Regex.test(userPassword) && !userPassword.includes(':')) {
-			userPassword = atob(userPassword);
-		}
-		socks5 = `${userPassword}@${socks5.substring(authIdx + 1)}`;
-	}
-
-	if (socks5) {
-		try {
-			return socks5Parser(socks5);
-		} catch (err) {
-			console.log(err.toString());
-			return null;
-		}
-	}
-	return null;
-}
-
-
-/** ---------------------Get data------------------------------ */
-
-let subParams = ['sub', 'base64', 'b64', 'clash', 'singbox', 'sb'];
-/**
- * @param {string} userID
- * @param {string | null} host
- * @param {string} userAgent
- * @param {string} _url
- * @returns {Promise<string>}
- */
-async function getchannelConfig(userID, host, userAgent, _url) {
-	// console.log(`------------getchannelConfig------------------`);
-	// console.log(`userID: ${userID} \n host: ${host} \n userAgent: ${userAgent} \n _url: ${_url}`);
-
-	userAgent = userAgent.toLowerCase();
-	let port = 443;
-	if (host.includes('.workers.dev')) {
-		port = 80;
-	}
-	const [v2ray, clash] = getConfigLink(userID, host, host, port, host);
-
-	if (userAgent.includes('mozilla') && !subParams.some(param => _url.searchParams.has(param))) {
-		return getHtmlResponse(socks5Enable, userID, host, v2ray, clash);
-	}
-
-	// Get node information
-	fakeHostName = getFakeHostName(host);
-	const ipUrlTxtAndCsv = await getIpUrlTxtAndCsv(noTLS, ipUrlTxt, ipUrlCsv);
-
-	// console.log(`txt: ${ipUrlTxtAndCsv.txt} \n csv: ${ipUrlTxtAndCsv.csv}`);
-	let content = await getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxtAndCsv.txt, ipUrlTxtAndCsv.csv);
-
-	return _url.pathname === `/${fakeUserID}` ? content : revertFakeInfo(content, userID, host);
-
-}
-
-function getHtmlResponse(socks5Enable, userID, host, v2ray, clash) {
-	const subRemark = `IP_LOCAL/IP_URL/IP_URL_TXT/IP_URL_CSV`;
-	let proxyIPRemark = `PROXYIP: ${proxyIP}`;
-
-	if (socks5Enable) {
-		proxyIPRemark = `socks5: ${parsedSocks5.hostname}:${parsedSocks5.port}`;
-	}
-
-	let remark = `您的订阅节点由设置变量 ${subRemark} 提供, 当前使用反代是${proxyIPRemark}`;
-
-	if (!proxyIP && !socks5Enable) {
-		remark = `您的订阅节点由设置变量 ${subRemark} 提供, 当前没设置反代, 推荐您设置PROXYIP变量或SOCKS5变量或订阅连接带proxyIP`;
-	}
-
-	return getConfigHtml(userID, host, remark, v2ray, clash);
-}
-
-function getFakeHostName(host) {
-	if (host.includes(".pages.dev")) {
-		return `${fakeHostName}.pages.dev`;
-	} else if (host.includes(".workers.dev") || host.includes("notls") || noTLS === 'true') {
-		return `${fakeHostName}.workers.dev`;
-	}
-	return `${fakeHostName}.xyz`;
-}
-
-async function getIpUrlTxtAndCsv(noTLS, urlTxts, urlCsvs) {
-	if (noTLS === 'true') {
-		return {
-			txt: await getIpUrlTxt(urlTxts),
-			csv: await getIpUrlCsv(urlCsvs, 'FALSE')
-		};
-	}
-	return {
-		txt: await getIpUrlTxt(urlTxts),
-		csv: await getIpUrlCsv(urlCsvs, 'TRUE')
-	};
-}
-
-async function getIpUrlTxt(urlTxts) {
-	if (!urlTxts || urlTxts.length === 0) {
-		return [];
-	}
-
-	let ipTxt = "";
-
-	// Create an AbortController object to control the cancellation of fetch requests
-	const controller = new AbortController();
-
-	// Set a timeout to trigger the cancellation of all requests after 2 seconds
-	const timeout = setTimeout(() => {
-		controller.abort(); // Cancel all requests
-	}, 2000);
-
-	try {
-		// Use Promise.allSettled to wait for all API requests to complete, regardless of success or failure
-		// Iterate over the api array and send a fetch request to each API URL
-		const responses = await Promise.allSettled(urlTxts.map(apiUrl => fetch(apiUrl, {
-			method: 'GET',
-			headers: {
-				'Accept': 'text/html,application/xhtml+xml,application/xml;',
-				'User-Agent': projectName
-			},
-			signal: controller.signal // Attach the AbortController's signal to the fetch request to allow cancellation when needed
-		}).then(response => response.ok ? response.text() : Promise.reject())));
-
-		// Iterate through all the responses
-		for (const response of responses) {
-			// Check if the request was fulfilled successfully
-			if (response.status === 'fulfilled') {
-				// Get the response content
-				const content = await response.value;
-				ipTxt += content + '\n';
-			}
-		}
-	} catch (error) {
-		console.error(error);
-	} finally {
-		// Clear the timeout regardless of success or failure
-		clearTimeout(timeout);
-	}
-
-	// Process the result using addIpText function
-	const newIpTxt = await addIpText(ipTxt);
-	// console.log(`ipUrlTxts: ${ipUrlTxts} \n ipTxt: ${ipTxt} \n newIpTxt: ${newIpTxt} `);
-
-	// Return the processed result
-	return newIpTxt;
-}
-
-async function getIpUrlCsv(urlCsvs, tls) {
-	// Check if the CSV URLs are valid
-	if (!urlCsvs || urlCsvs.length === 0) {
-		return [];
-	}
-
-	const newAddressesCsv = [];
-
-	// Fetch and process all CSVs concurrently
-	const fetchCsvPromises = urlCsvs.map(async (csvUrl) => {
-		// console.error('getIpUrlCsv--> csvUrl:', csvUrl);
-		try {
-			const response = await fetch(csvUrl);
-
-			// Ensure the response is successful
-			if (!response.ok) {
-				console.error('Error fetching CSV:', response.status, response.statusText);
-				return;
-			}
-
-			// Parse the CSV content and split it into lines
-			const text = await response.text();
-			const lines = text.includes('\r\n') ? text.split('\r\n') : text.split('\n');
-
-			// Ensure we have a non-empty CSV
-			if (lines.length < 2) {
-				console.error('CSV file is empty or has no data rows');
-				return;
-			}
-
-			// Extract the header and get required field indexes
-			const header = lines[0].trim().split(',');
-			const tlsIndex = header.indexOf('TLS');
-			const ipAddressIndex = 0; // Assuming the first column is IP address
-			const portIndex = 1; // Assuming the second column is port
-			const dataCenterIndex = tlsIndex + 1; // Data center assumed to be right after TLS
-			const speedIndex = header.length - 1; // Last column for speed
-
-			// If the required fields are missing, skip this CSV
-			if (tlsIndex === -1) {
-				console.error('CSV file missing required TLS field');
-				return;
-			}
-
-			// Process the data rows
-			for (let i = 1; i < lines.length; i++) {
-				const columns = lines[i].trim().split(',');
-
-				// Skip empty or malformed rows
-				if (columns.length < header.length) {
-					continue;
-				}
-				// Check if TLS matches and speed is greater than sl
-				const tlsValue = columns[tlsIndex].toUpperCase();
-				const speedValue = parseFloat(columns[speedIndex]);
-
-				if (tlsValue === tls && speedValue > sl) {
-					const ipAddress = columns[ipAddressIndex];
-					const port = columns[portIndex];
-					const dataCenter = columns[dataCenterIndex];
-					newAddressesCsv.push(`${ipAddress}:${port}#${dataCenter}`);
-				}
-			}
-		} catch (error) {
-			console.error('Error processing CSV URL:', csvUrl, error);
-		}
-	});
-
-	// Wait for all CSVs to be processed
-	await Promise.all(fetchCsvPromises);
-
-	return newAddressesCsv;
-}
-
-const protocolTypeBase64 = 'dmxlc3M=';
-/**
- * Get node configuration information
- * @param {*} uuid 
- * @param {*} host 
- * @param {*} address 
- * @param {*} port 
- * @param {*} remarks 
- * @returns 
- */
-function getConfigLink(uuid, host, address, port, remarks) {
-	const protocolType = atob(protocolTypeBase64);
-
-	const encryption = 'none';
-	let path = '/?ed=2560';
-	const fingerprint = 'randomized';
-	let tls = ['tls', true];
-	if (host.includes('.workers.dev') || host.includes('pages.dev')) {
-		path = `/${host}${path}`;
-		remarks += ' 请通过绑定自定义域名订阅！';
-	}
-
-	const v2ray = getV2rayLink({ protocolType, host, uuid, address, port, remarks, encryption, path, fingerprint, tls });
-	const clash = getClashLink(protocolType, host, address, port, uuid, path, tls, fingerprint);
-
-	return [v2ray, clash];
-}
-
-/**
- * Get channel information
- * @param {*} param0 
- * @returns 
- */
-function getV2rayLink({ protocolType, host, uuid, address, port, remarks, encryption, path, fingerprint, tls }) {
-	let sniAndFp = `&sni=${host}&fp=${fingerprint}`;
-	if (portSet_http.has(parseInt(port))) {
-		tls = ['', false];
-		sniAndFp = '';
-	}
-
-	const v2rayLink = `${protocolType}://${uuid}@${address}:${port}?encryption=${encryption}&security=${tls[0]}&type=${network}&host=${host}&path=${encodeURIComponent(path)}${sniAndFp}#${encodeURIComponent(remarks)}`;
-	return v2rayLink;
-}
-
-/**
- * getClashLink
- * @param {*} protocolType 
- * @param {*} host 
- * @param {*} address 
- * @param {*} port 
- * @param {*} uuid 
- * @param {*} path 
- * @param {*} tls 
- * @param {*} fingerprint 
- * @returns 
- */
-function getClashLink(protocolType, host, address, port, uuid, path, tls, fingerprint) {
-	return `- {type: ${protocolType}, name: ${host}, server: ${address}, port: ${port}, password: ${uuid}, network: ${network}, tls: ${tls[1]}, udp: false, sni: ${host}, client-fingerprint: ${fingerprint}, skip-cert-verify: true,  ws-opts: {path: ${path}, headers: {Host: ${host}}}}`;
-
-	// 	return `
-	//   - type: ${protocolType}
-	//     name: ${host}
-	//     server: ${address}
-	//     port: ${port}
-	//     uuid: ${uuid}
-	//     network: ${network}
-	//     tls: ${tls[1]}
-	//     udp: false
-	//     sni: ${host}
-	//     client-fingerprint: ${fingerprint}
-	//     ws-opts:
-	//       path: "${path}"
-	//       headers:
-	//         host: ${host}
-	// 	`;
-}
-
-/**
- * Generate home page
- * @param {*} userID 
- * @param {*} hostName 
- * @param {*} remark 
- * @param {*} v2ray 
- * @param {*} clash 
- * @returns 
- */
-function getConfigHtml(userID, host, remark, v2ray, clash) {
-	// HTML Head with CSS and FontAwesome library
-	const htmlHead = `
-    <head>
-      <title>${projectName}(${fileName})</title>
-      <meta name='description' content='This is a project to generate free vmess nodes. For more information, please subscribe youtube(AM科技) https://youtube.com/@AM_CLUB and follow GitHub https://github.com/amclubs ' />
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: #f0f0f0;
-          color: #333;
-          padding: 0;
-          margin: 0;
-        }
-        a {
-          color: #1a0dab;
-          text-decoration: none;
-        }
-        img {
-          max-width: 100%;
-          height: auto;
-        }
-        pre {
-          white-space: pre-wrap;
-          word-wrap: break-word;
-          background-color: #fff;
-          border: 1px solid #ddd;
-          padding: 10px;
-          margin: 0;
-        }
-        /* Dark mode */
-        @media (prefers-color-scheme: dark) {
-          body {
-            background-color: #333;
-            color: #f0f0f0;
-          }
-          a {
-            color: #9db4ff;
-          }
-          pre {
-            background-color: #282a36;
-            border-color: #6272a4;
-          }
-        }
-      </style>
-    </head>
-  `;
-
-	// Prepare header string with left alignment
-	const header = `
-		<p align="left" style="padding-left: 20px; margin-top: 20px;">
-		Telegram交流群 技术大佬~在线交流</br>
-		<a href="t.me/AM_CLUBS" target="_blank">t.me/AM_CLUBS</a>
-		</br></br>
-		GitHub项目地址 点击Star!Star!Star!</br>
-		<a href="https://github.com/${projectName}" target="_blank">https://github.com/${projectName}</a>
-		</br></br>
-		YouTube频道,订阅频道,更多技术分享</br>
-		<a href="${ytName}" target="_blank">${ytName}</a>
-		</p>
-  `;
-
-	// Prepare the output string
-	const httpAddr = `https://${host}/${userID}`;
-	const output = `
-################################################################
-订阅地址, 支持 Base64、clash-meta、sing-box、Quantumult X、小火箭、surge 等订阅格式, ${remark}
----------------------------------------------------------------
-通用订阅地址: <button onclick='copyToClipboard("${httpAddr}?sub")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?sub
-
-Base64订阅地址: <button onclick='copyToClipboard("${httpAddr}?base64")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?base64
-
-clash订阅地址: <button onclick='copyToClipboard("${httpAddr}?clash")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?clash
-
-singbox订阅地址: <button onclick='copyToClipboard("${httpAddr}?singbox")'><i class="fa fa-clipboard"></i> 点击复制订阅地址 </button>
-${httpAddr}?singbox
----------------------------------------------------------------
-################################################################
-v2ray
----------------------------------------------------------------
-${v2ray}
----------------------------------------------------------------
-################################################################
-clash-meta
----------------------------------------------------------------
-${clash}
----------------------------------------------------------------
-################################################################
-  `;
-
-	// Final HTML
-	const html = `
-<html>
-${htmlHead}
-<body>
-  ${header}
-  <pre>${output}</pre>
-  <script>
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text)
-        .then(() => {
-          alert("Copied to clipboard");
-        })
-        .catch(err => {
-          console.error("Failed to copy to clipboard:", err);
-        });
+__name(notImplemented, "notImplemented");
+
+// node_modules/unenv/runtime/mock/noop.mjs
+var noop_default = Object.assign(() => {
+}, { __unenv__: true });
+
+// node_modules/unenv/runtime/node/timers/internal/immediate.mjs
+var Immediate = class {
+  _onImmediate;
+  _timeout;
+  constructor(callback, args) {
+    this._onImmediate = callback;
+    if ("setTimeout" in globalThis) {
+      this._timeout = setTimeout(callback, 0, ...args);
+    } else {
+      callback(...args);
     }
-  </script>
-</body>
-</html>
-  `;
+  }
+  ref() {
+    this._timeout?.ref();
+    return this;
+  }
+  unref() {
+    this._timeout?.unref();
+    return this;
+  }
+  hasRef() {
+    return this._timeout?.hasRef() ?? false;
+  }
+  [Symbol.dispose]() {
+    if ("clearTimeout" in globalThis) {
+      clearTimeout(this._timeout);
+    }
+  }
+};
+__name(Immediate, "Immediate");
 
-	return html;
+// node_modules/unenv/runtime/node/timers/internal/set-immediate.mjs
+function setImmediateFallbackPromises(value) {
+  return new Promise((res) => {
+    res(value);
+  });
 }
-
-
-let portSet_http = new Set([80, 8080, 8880, 2052, 2086, 2095, 2082]);
-let portSet_https = new Set([443, 8443, 2053, 2096, 2087, 2083]);
-/**
- * 
- * @param {*} host 
- * @param {*} uuid 
- * @param {*} noTLS 
- * @param {*} ipUrlTxt 
- * @param {*} ipUrlCsv 
- * @returns 
- */
-async function getSubscribeNode(userAgent, _url, host, fakeHostName, fakeUserID, noTLS, ipUrlTxt, ipUrlCsv) {
-	// Use Set object to remove duplicates
-	const uniqueIpTxt = [...new Set([...ipLocal, ...ipUrlTxt, ...ipUrlCsv])];
-	let responseBody = splitNodeData(uniqueIpTxt, noTLS, fakeHostName, fakeUserID, userAgent);
-	// console.log(`getSubscribeNode---> responseBody: ${responseBody} `);
-
-	if (!userAgent.includes(('CF-FAKE-UA').toLowerCase())) {
-
-		let url = `https://${host}/${fakeUserID}`;
-
-		if (isClashCondition(userAgent, _url)) {
-			isBase64 = false;
-			url = createSubConverterUrl('clash', url, subConfig, subConverter, subProtocol);
-		} else if (isSingboxCondition(userAgent, _url)) {
-			isBase64 = false;
-			url = createSubConverterUrl('singbox', url, subConfig, subConverter, subProtocol);
-		} else {
-			return responseBody;
-		}
-		const response = await fetch(url, {
-			headers: {
-				//'Content-Type': 'text/html; charset=UTF-8',
-				'User-Agent': `${userAgent} ${projectName}`
-			}
-		});
-		responseBody = await response.text();
-		//console.log(`getSubscribeNode---> url: ${url} `);
-	}
-
-	return responseBody;
+__name(setImmediateFallbackPromises, "setImmediateFallbackPromises");
+function setImmediateFallback(callback, ...args) {
+  return new Immediate(callback, args);
 }
-
-function createSubConverterUrl(target, url, subConfig, subConverter, subProtocol) {
-	return `${subProtocol}://${subConverter}/sub?target=${target}&url=${encodeURIComponent(url)}&insert=false&config=${encodeURIComponent(subConfig)}&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
+__name(setImmediateFallback, "setImmediateFallback");
+setImmediateFallback.__promisify__ = setImmediateFallbackPromises;
+function clearImmediateFallback(immediate) {
+  immediate?.[Symbol.dispose]();
 }
+__name(clearImmediateFallback, "clearImmediateFallback");
 
-function isClashCondition(userAgent, _url) {
-	return (userAgent.includes('clash') && !userAgent.includes('nekobox')) || (_url.searchParams.has('clash') && !userAgent.includes('subConverter'));
+// node_modules/wrangler/_virtual_unenv_global_polyfill-set$immediate.js
+globalThis.setImmediate = setImmediateFallback;
+
+// node_modules/unenv/runtime/node/console/index.mjs
+import { Writable } from "node:stream";
+
+// node_modules/unenv/runtime/mock/proxy.mjs
+var fn = /* @__PURE__ */ __name(function() {
+}, "fn");
+function createMock(name, overrides = {}) {
+  fn.prototype.name = name;
+  const props = {};
+  return new Proxy(fn, {
+    get(_target, prop) {
+      if (prop === "caller") {
+        return null;
+      }
+      if (prop === "__createMock__") {
+        return createMock;
+      }
+      if (prop === "__unenv__") {
+        return true;
+      }
+      if (prop in overrides) {
+        return overrides[prop];
+      }
+      return props[prop] = props[prop] || createMock(`${name}.${prop.toString()}`);
+    },
+    apply(_target, _this, _args) {
+      return createMock(`${name}()`);
+    },
+    construct(_target, _args, _newT) {
+      return createMock(`[${name}]`);
+    },
+    // @ts-ignore (ES6-only - removed in ES7)
+    // https://github.com/tc39/ecma262/issues/161
+    enumerate() {
+      return [];
+    }
+  });
 }
+__name(createMock, "createMock");
+var proxy_default = createMock("mock");
 
-function isSingboxCondition(userAgent, _url) {
-	return userAgent.includes('sing-box') || userAgent.includes('singbox') || ((_url.searchParams.has('singbox') || _url.searchParams.has('sb')) && !userAgent.includes('subConverter'));
+// node_modules/unenv/runtime/node/console/index.mjs
+var _console = globalThis.console;
+var _ignoreErrors = true;
+var _stderr = new Writable();
+var _stdout = new Writable();
+var log = _console?.log ?? noop_default;
+var info = _console?.info ?? log;
+var trace = _console?.trace ?? info;
+var debug = _console?.debug ?? log;
+var table = _console?.table ?? log;
+var error = _console?.error ?? log;
+var warn = _console?.warn ?? error;
+var createTask = _console?.createTask ?? notImplemented("console.createTask");
+var assert = notImplemented("console.assert");
+var clear = _console?.clear ?? noop_default;
+var count = _console?.count ?? noop_default;
+var countReset = _console?.countReset ?? noop_default;
+var dir = _console?.dir ?? noop_default;
+var dirxml = _console?.dirxml ?? noop_default;
+var group = _console?.group ?? noop_default;
+var groupEnd = _console?.groupEnd ?? noop_default;
+var groupCollapsed = _console?.groupCollapsed ?? noop_default;
+var profile = _console?.profile ?? noop_default;
+var profileEnd = _console?.profileEnd ?? noop_default;
+var time = _console?.time ?? noop_default;
+var timeEnd = _console?.timeEnd ?? noop_default;
+var timeLog = _console?.timeLog ?? noop_default;
+var timeStamp = _console?.timeStamp ?? noop_default;
+var Console = _console?.Console ?? proxy_default.__createMock__("console.Console");
+
+// node_modules/unenv/runtime/node/console/$cloudflare.mjs
+var workerdConsole = globalThis["console"];
+var {
+  assert: assert2,
+  clear: clear2,
+  // @ts-expect-error undocumented public API
+  context,
+  count: count2,
+  countReset: countReset2,
+  // @ts-expect-error undocumented public API
+  createTask: createTask2,
+  debug: debug2,
+  dir: dir2,
+  dirxml: dirxml2,
+  error: error2,
+  group: group2,
+  groupCollapsed: groupCollapsed2,
+  groupEnd: groupEnd2,
+  info: info2,
+  log: log2,
+  profile: profile2,
+  profileEnd: profileEnd2,
+  table: table2,
+  time: time2,
+  timeEnd: timeEnd2,
+  timeLog: timeLog2,
+  timeStamp: timeStamp2,
+  trace: trace2,
+  warn: warn2
+} = workerdConsole;
+Object.assign(workerdConsole, {
+  Console,
+  _ignoreErrors,
+  _stderr,
+  _stderrErrorHandler: noop_default,
+  _stdout,
+  _stdoutErrorHandler: noop_default,
+  _times: proxy_default
+});
+var cloudflare_default = workerdConsole;
+
+// node_modules/wrangler/_virtual_unenv_global_polyfill-console.js
+globalThis.console = cloudflare_default;
+
+// node_modules/unenv/runtime/web/performance/_entry.mjs
+var _supportedEntryTypes = [
+  "event",
+  // PerformanceEntry
+  "mark",
+  // PerformanceMark
+  "measure",
+  // PerformanceMeasure
+  "resource"
+  // PerformanceResourceTiming
+];
+var _PerformanceEntry = class {
+  __unenv__ = true;
+  detail;
+  entryType = "event";
+  name;
+  startTime;
+  constructor(name, options) {
+    this.name = name;
+    this.startTime = options?.startTime || performance.now();
+    this.detail = options?.detail;
+  }
+  get duration() {
+    return performance.now() - this.startTime;
+  }
+  toJSON() {
+    return {
+      name: this.name,
+      entryType: this.entryType,
+      startTime: this.startTime,
+      duration: this.duration,
+      detail: this.detail
+    };
+  }
+};
+__name(_PerformanceEntry, "_PerformanceEntry");
+var PerformanceEntry = globalThis.PerformanceEntry || _PerformanceEntry;
+var _PerformanceMark = class extends _PerformanceEntry {
+  entryType = "mark";
+};
+__name(_PerformanceMark, "_PerformanceMark");
+var PerformanceMark = globalThis.PerformanceMark || _PerformanceMark;
+var _PerformanceMeasure = class extends _PerformanceEntry {
+  entryType = "measure";
+};
+__name(_PerformanceMeasure, "_PerformanceMeasure");
+var PerformanceMeasure = globalThis.PerformanceMeasure || _PerformanceMeasure;
+var _PerformanceResourceTiming = class extends _PerformanceEntry {
+  entryType = "resource";
+  serverTiming = [];
+  connectEnd = 0;
+  connectStart = 0;
+  decodedBodySize = 0;
+  domainLookupEnd = 0;
+  domainLookupStart = 0;
+  encodedBodySize = 0;
+  fetchStart = 0;
+  initiatorType = "";
+  name = "";
+  nextHopProtocol = "";
+  redirectEnd = 0;
+  redirectStart = 0;
+  requestStart = 0;
+  responseEnd = 0;
+  responseStart = 0;
+  secureConnectionStart = 0;
+  startTime = 0;
+  transferSize = 0;
+  workerStart = 0;
+};
+__name(_PerformanceResourceTiming, "_PerformanceResourceTiming");
+var PerformanceResourceTiming = globalThis.PerformanceResourceTiming || _PerformanceResourceTiming;
+
+// node_modules/unenv/runtime/web/performance/_performance.mjs
+var _timeOrigin = Date.now();
+var _Performance = class {
+  __unenv__ = true;
+  timeOrigin = _timeOrigin;
+  eventCounts = /* @__PURE__ */ new Map();
+  _entries = [];
+  _resourceTimingBufferSize = 0;
+  navigation = proxy_default.__createMock__("PerformanceNavigation");
+  timing = proxy_default.__createMock__("PerformanceTiming");
+  onresourcetimingbufferfull = null;
+  now() {
+    if (globalThis?.performance?.now && this.timeOrigin === _timeOrigin) {
+      return globalThis.performance.now();
+    }
+    return Date.now() - this.timeOrigin;
+  }
+  clearMarks(markName) {
+    this._entries = markName ? this._entries.filter((e) => e.name !== markName) : this._entries.filter((e) => e.entryType !== "mark");
+  }
+  clearMeasures(measureName) {
+    this._entries = measureName ? this._entries.filter((e) => e.name !== measureName) : this._entries.filter((e) => e.entryType !== "measure");
+  }
+  clearResourceTimings() {
+    this._entries = this._entries.filter(
+      (e) => e.entryType !== "resource" || e.entryType !== "navigation"
+    );
+  }
+  getEntries() {
+    return this._entries;
+  }
+  getEntriesByName(name, type) {
+    return this._entries.filter(
+      (e) => e.name === name && (!type || e.entryType === type)
+    );
+  }
+  getEntriesByType(type) {
+    return this._entries.filter(
+      (e) => e.entryType === type
+    );
+  }
+  mark(name, options) {
+    const entry = new _PerformanceMark(name, options);
+    this._entries.push(entry);
+    return entry;
+  }
+  measure(measureName, startOrMeasureOptions, endMark) {
+    let start;
+    let end;
+    if (typeof startOrMeasureOptions === "string") {
+      start = this.getEntriesByName(startOrMeasureOptions, "mark")[0]?.startTime;
+      end = this.getEntriesByName(endMark, "mark")[0]?.startTime;
+    } else {
+      start = Number.parseFloat(startOrMeasureOptions?.start) || performance2.now();
+      end = Number.parseFloat(startOrMeasureOptions?.end) || performance2.now();
+    }
+    const entry = new _PerformanceMeasure(measureName, {
+      startTime: start,
+      detail: { start, end }
+    });
+    this._entries.push(entry);
+    return entry;
+  }
+  setResourceTimingBufferSize(maxSize) {
+    this._resourceTimingBufferSize = maxSize;
+  }
+  toJSON() {
+    return this;
+  }
+  addEventListener(type, listener, options) {
+    throw createNotImplementedError("Performance.addEventListener");
+  }
+  removeEventListener(type, listener, options) {
+    throw createNotImplementedError("Performance.removeEventListener");
+  }
+  dispatchEvent(event) {
+    throw createNotImplementedError("Performance.dispatchEvent");
+  }
+};
+__name(_Performance, "_Performance");
+var Performance = globalThis.Performance || _Performance;
+var performance2 = globalThis.performance || new Performance();
+
+// node_modules/unenv/runtime/web/performance/_observer.mjs
+var _PerformanceObserver = class {
+  __unenv__ = true;
+  _callback = null;
+  constructor(callback) {
+    this._callback = callback;
+  }
+  takeRecords() {
+    return [];
+  }
+  disconnect() {
+    throw createNotImplementedError("PerformanceObserver.disconnect");
+  }
+  observe(options) {
+    throw createNotImplementedError("PerformanceObserver.observe");
+  }
+};
+__name(_PerformanceObserver, "_PerformanceObserver");
+__publicField(_PerformanceObserver, "supportedEntryTypes", _supportedEntryTypes);
+var PerformanceObserver = globalThis.PerformanceObserver || _PerformanceObserver;
+var _PerformanceObserverEntryList = class {
+  __unenv__ = true;
+  getEntries() {
+    return [];
+  }
+  getEntriesByName(_name, _type) {
+    return [];
+  }
+  getEntriesByType(type) {
+    return [];
+  }
+};
+__name(_PerformanceObserverEntryList, "_PerformanceObserverEntryList");
+var PerformanceObserverEntryList = globalThis.PerformanceObserverEntryList || _PerformanceObserverEntryList;
+
+// node_modules/unenv/runtime/polyfill/global-this.mjs
+function getGlobal() {
+  if (typeof globalThis !== "undefined") {
+    return globalThis;
+  }
+  if (typeof self !== "undefined") {
+    return self;
+  }
+  if (typeof window !== "undefined") {
+    return window;
+  }
+  if (typeof global !== "undefined") {
+    return global;
+  }
+  return {};
 }
+__name(getGlobal, "getGlobal");
+var global_this_default = getGlobal();
 
-/**
- * 
- * @param {*} uniqueIpTxt 
- * @param {*} noTLS 
- * @param {*} host 
- * @param {*} uuid 
- * @returns 
- */
-function splitNodeData(uniqueIpTxt, noTLS, host, uuid, userAgent) {
-	// Regex to match IPv4 and IPv6
-	const regex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[.*\]):?(\d+)?#?(.*)?$/;
+// node_modules/unenv/runtime/polyfill/performance.mjs
+global_this_default.performance = global_this_default.performance || performance2;
+global_this_default.Performance = global_this_default.Performance || Performance;
+global_this_default.PerformanceEntry = global_this_default.PerformanceEntry || PerformanceEntry;
+global_this_default.PerformanceMark = global_this_default.PerformanceMark || PerformanceMark;
+global_this_default.PerformanceMeasure = global_this_default.PerformanceMeasure || PerformanceMeasure;
+global_this_default.PerformanceObserver = global_this_default.PerformanceObserver || PerformanceObserver;
+global_this_default.PerformanceObserverEntryList = global_this_default.PerformanceObserverEntryList || PerformanceObserverEntryList;
+global_this_default.PerformanceResourceTiming = global_this_default.PerformanceResourceTiming || PerformanceResourceTiming;
+var performance_default = global_this_default.performance;
 
-	// Region codes mapped to corresponding emojis
-	const regionMap = {
-		'SG': '🇸🇬 SG',
-		'HK': '🇭🇰 HK',
-		'KR': '🇰🇷 KR',
-		'JP': '🇯🇵 JP',
-		'GB': '🇬🇧 GB',
-		'US': '🇺🇸 US',
-		'TW': '🇼🇸 TW',
-		'CF': '📶 CF'
-	};
+// node_modules/wrangler/_virtual_unenv_global_polyfill-performance.js
+globalThis.performance = performance_default;
 
-	const responseBody = uniqueIpTxt.map(ipTxt => {
-		let address = ipTxt;
-		let port = "443";
-		let remarks = "";
+// node_modules/unenv/runtime/mock/empty.mjs
+var empty_default = Object.freeze(
+  Object.create(null, {
+    __unenv__: { get: () => true }
+  })
+);
 
-		const match = address.match(regex);
-		if (match) {
-			address = match[1];
-			port = match[2] || port;
-			remarks = match[3] || host;
-		} else {
-			let ip, newPort, extra;
+// node_modules/unenv/runtime/node/process/internal/env.mjs
+var _envShim = /* @__PURE__ */ Object.create(null);
+var _processEnv = globalThis.process?.env;
+var _getEnv = /* @__PURE__ */ __name((useShim) => _processEnv || globalThis.__env__ || (useShim ? _envShim : globalThis), "_getEnv");
+var env = new Proxy(_envShim, {
+  get(_, prop) {
+    const env22 = _getEnv();
+    return env22[prop] ?? _envShim[prop];
+  },
+  has(_, prop) {
+    const env22 = _getEnv();
+    return prop in env22 || prop in _envShim;
+  },
+  set(_, prop, value) {
+    const env22 = _getEnv(true);
+    env22[prop] = value;
+    return true;
+  },
+  deleteProperty(_, prop) {
+    const env22 = _getEnv(true);
+    delete env22[prop];
+    return true;
+  },
+  ownKeys() {
+    const env22 = _getEnv();
+    return Object.keys(env22);
+  }
+});
 
-			if (ipTxt.includes(':') && ipTxt.includes('#')) {
-				[ip, newPort, extra] = ipTxt.split(/[:#]/);
-			} else if (ipTxt.includes(':')) {
-				[ip, newPort] = ipTxt.split(':');
-			} else if (ipTxt.includes('#')) {
-				[ip, extra] = ipTxt.split('#');
-			} else {
-				ip = ipTxt;
-			}
-
-			address = ip;
-			port = newPort || port;
-			remarks = extra || host;
-			// console.log(`splitNodeData---> ip: ${ip} \n extra: ${extra} \n port: ${port}`);
-		}
-
-		// Replace region code with corresponding emoji
-		remarks = regionMap[remarks] || remarks;
-
-		// Check if TLS is disabled and if the port is in the allowed set
-		if (noTLS !== 'true' && portSet_http.has(parseInt(port))) {
-			return null; // Skip this iteration
-		}
-
-		const [v2ray, clash] = getConfigLink(uuid, host, address, port, remarks);
-		return v2ray;
-	}).filter(Boolean).join('\n');
-
-	let base64Response = responseBody;
-	return btoa(base64Response);
+// node_modules/unenv/runtime/node/process/internal/time.mjs
+var hrtime = Object.assign(
+  /* @__PURE__ */ __name(function hrtime2(startTime) {
+    const now = Date.now();
+    const seconds = Math.trunc(now / 1e3);
+    const nanos = now % 1e3 * 1e6;
+    if (startTime) {
+      let diffSeconds = seconds - startTime[0];
+      let diffNanos = nanos - startTime[0];
+      if (diffNanos < 0) {
+        diffSeconds = diffSeconds - 1;
+        diffNanos = 1e9 + diffNanos;
+      }
+      return [diffSeconds, diffNanos];
+    }
+    return [seconds, nanos];
+  }, "hrtime2"),
+  {
+    bigint: /* @__PURE__ */ __name(function bigint() {
+      return BigInt(Date.now() * 1e6);
+    }, "bigint")
+  }
+);
+var nextTick = globalThis.queueMicrotask ? (cb, ...args) => {
+  globalThis.queueMicrotask(cb.bind(void 0, ...args));
+} : _createNextTickWithTimeout();
+function _createNextTickWithTimeout() {
+  let queue = [];
+  let draining = false;
+  let currentQueue;
+  let queueIndex = -1;
+  function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+      return;
+    }
+    draining = false;
+    if (currentQueue.length > 0) {
+      queue = [...currentQueue, ...queue];
+    } else {
+      queueIndex = -1;
+    }
+    if (queue.length > 0) {
+      drainQueue();
+    }
+  }
+  __name(cleanUpNextTick, "cleanUpNextTick");
+  function drainQueue() {
+    if (draining) {
+      return;
+    }
+    const timeout = setTimeout(cleanUpNextTick);
+    draining = true;
+    let len = queue.length;
+    while (len) {
+      currentQueue = queue;
+      queue = [];
+      while (++queueIndex < len) {
+        if (currentQueue) {
+          currentQueue[queueIndex]();
+        }
+      }
+      queueIndex = -1;
+      len = queue.length;
+    }
+    currentQueue = void 0;
+    draining = false;
+    clearTimeout(timeout);
+  }
+  __name(drainQueue, "drainQueue");
+  const nextTick22 = /* @__PURE__ */ __name((cb, ...args) => {
+    queue.push(cb.bind(void 0, ...args));
+    if (queue.length === 1 && !draining) {
+      setTimeout(drainQueue);
+    }
+  }, "nextTick2");
+  return nextTick22;
 }
+__name(_createNextTickWithTimeout, "_createNextTickWithTimeout");
 
-/** ---------------------Get CF data------------------------------ */
-
-async function getCFConfig(email, key, accountIndex) {
-	try {
-		const now = new Date();
-		const today = new Date(now);
-		today.setHours(0, 0, 0, 0);
-
-		// Calculate default value
-		const ud = Math.floor(((now - today.getTime()) / 86400000) * 24 * 1099511627776 / 2);
-		let upload = ud;
-		let download = ud;
-		let total = 24 * 1099511627776;
-
-		if (email && key) {
-			const accountId = await getAccountId(email, key);
-			if (accountId) {
-				// Calculate start and end time
-				now.setUTCHours(0, 0, 0, 0);
-				const startDate = now.toISOString();
-				const endDate = new Date().toISOString();
-
-				// Get summary data
-				const [pagesSumResult, workersSumResult] = await getCFSum(accountId, accountIndex, email, key, startDate, endDate);
-				upload = pagesSumResult;
-				download = workersSumResult;
-				total = 102400;
-			}
-		}
-
-		return { upload, download, total };
-	} catch (error) {
-		console.error('Error in getCFConfig:', error);
-		return { upload: 0, download: 0, total: 0 };
-	}
+// node_modules/unenv/runtime/node/process/internal/process.mjs
+var title = "unenv";
+var argv = [];
+var version = "";
+var versions = {
+  ares: "",
+  http_parser: "",
+  icu: "",
+  modules: "",
+  node: "",
+  openssl: "",
+  uv: "",
+  v8: "",
+  zlib: ""
+};
+function noop() {
+  return process;
 }
+__name(noop, "noop");
+var on = noop;
+var addListener = noop;
+var once = noop;
+var off = noop;
+var removeListener = noop;
+var removeAllListeners = noop;
+var emit = /* @__PURE__ */ __name(function emit2(event) {
+  if (event === "message" || event === "multipleResolves") {
+    return process;
+  }
+  return false;
+}, "emit2");
+var prependListener = noop;
+var prependOnceListener = noop;
+var listeners = /* @__PURE__ */ __name(function(name) {
+  return [];
+}, "listeners");
+var listenerCount = /* @__PURE__ */ __name(() => 0, "listenerCount");
+var binding = /* @__PURE__ */ __name(function(name) {
+  throw new Error("[unenv] process.binding is not supported");
+}, "binding");
+var _cwd = "/";
+var cwd = /* @__PURE__ */ __name(function cwd2() {
+  return _cwd;
+}, "cwd2");
+var chdir = /* @__PURE__ */ __name(function chdir2(dir3) {
+  _cwd = dir3;
+}, "chdir2");
+var umask = /* @__PURE__ */ __name(function umask2() {
+  return 0;
+}, "umask2");
+var getegid = /* @__PURE__ */ __name(function getegid2() {
+  return 1e3;
+}, "getegid2");
+var geteuid = /* @__PURE__ */ __name(function geteuid2() {
+  return 1e3;
+}, "geteuid2");
+var getgid = /* @__PURE__ */ __name(function getgid2() {
+  return 1e3;
+}, "getgid2");
+var getuid = /* @__PURE__ */ __name(function getuid2() {
+  return 1e3;
+}, "getuid2");
+var getgroups = /* @__PURE__ */ __name(function getgroups2() {
+  return [];
+}, "getgroups2");
+var getBuiltinModule = /* @__PURE__ */ __name((_name) => void 0, "getBuiltinModule");
+var abort = notImplemented("process.abort");
+var allowedNodeEnvironmentFlags = /* @__PURE__ */ new Set();
+var arch = "";
+var argv0 = "";
+var config = empty_default;
+var connected = false;
+var constrainedMemory = /* @__PURE__ */ __name(() => 0, "constrainedMemory");
+var availableMemory = /* @__PURE__ */ __name(() => 0, "availableMemory");
+var cpuUsage = notImplemented("process.cpuUsage");
+var debugPort = 0;
+var dlopen = notImplemented("process.dlopen");
+var disconnect = noop;
+var emitWarning = noop;
+var eventNames = notImplemented("process.eventNames");
+var execArgv = [];
+var execPath = "";
+var exit = notImplemented("process.exit");
+var features = /* @__PURE__ */ Object.create({
+  inspector: void 0,
+  debug: void 0,
+  uv: void 0,
+  ipv6: void 0,
+  tls_alpn: void 0,
+  tls_sni: void 0,
+  tls_ocsp: void 0,
+  tls: void 0,
+  cached_builtins: void 0
+});
+var getActiveResourcesInfo = /* @__PURE__ */ __name(() => [], "getActiveResourcesInfo");
+var getMaxListeners = notImplemented(
+  "process.getMaxListeners"
+);
+var kill = notImplemented("process.kill");
+var memoryUsage = Object.assign(
+  () => ({
+    arrayBuffers: 0,
+    rss: 0,
+    external: 0,
+    heapTotal: 0,
+    heapUsed: 0
+  }),
+  { rss: () => 0 }
+);
+var pid = 1e3;
+var platform = "";
+var ppid = 1e3;
+var rawListeners = notImplemented(
+  "process.rawListeners"
+);
+var release = /* @__PURE__ */ Object.create({
+  name: "",
+  lts: "",
+  sourceUrl: void 0,
+  headersUrl: void 0
+});
+var report = /* @__PURE__ */ Object.create({
+  compact: void 0,
+  directory: void 0,
+  filename: void 0,
+  getReport: notImplemented("process.report.getReport"),
+  reportOnFatalError: void 0,
+  reportOnSignal: void 0,
+  reportOnUncaughtException: void 0,
+  signal: void 0,
+  writeReport: notImplemented("process.report.writeReport")
+});
+var resourceUsage = notImplemented(
+  "process.resourceUsage"
+);
+var setegid = notImplemented("process.setegid");
+var seteuid = notImplemented("process.seteuid");
+var setgid = notImplemented("process.setgid");
+var setgroups = notImplemented("process.setgroups");
+var setuid = notImplemented("process.setuid");
+var setMaxListeners = notImplemented(
+  "process.setMaxListeners"
+);
+var setSourceMapsEnabled = notImplemented("process.setSourceMapsEnabled");
+var stdout = proxy_default.__createMock__("process.stdout");
+var stderr = proxy_default.__createMock__("process.stderr");
+var stdin = proxy_default.__createMock__("process.stdin");
+var traceDeprecation = false;
+var uptime = /* @__PURE__ */ __name(() => 0, "uptime");
+var exitCode = 0;
+var setUncaughtExceptionCaptureCallback = notImplemented("process.setUncaughtExceptionCaptureCallback");
+var hasUncaughtExceptionCaptureCallback = /* @__PURE__ */ __name(() => false, "hasUncaughtExceptionCaptureCallback");
+var sourceMapsEnabled = false;
+var loadEnvFile = notImplemented(
+  "process.loadEnvFile"
+);
+var mainModule = void 0;
+var permission = {
+  has: () => false
+};
+var channel = {
+  ref() {
+  },
+  unref() {
+  }
+};
+var throwDeprecation = false;
+var assert3 = notImplemented("process.assert");
+var openStdin = notImplemented("process.openStdin");
+var _debugEnd = notImplemented("process._debugEnd");
+var _debugProcess = notImplemented("process._debugProcess");
+var _fatalException = notImplemented("process._fatalException");
+var _getActiveHandles = notImplemented("process._getActiveHandles");
+var _getActiveRequests = notImplemented("process._getActiveRequests");
+var _kill = notImplemented("process._kill");
+var _preload_modules = [];
+var _rawDebug = notImplemented("process._rawDebug");
+var _startProfilerIdleNotifier = notImplemented(
+  "process._startProfilerIdleNotifier"
+);
+var _stopProfilerIdleNotifier = notImplemented(
+  "process.__stopProfilerIdleNotifier"
+);
+var _tickCallback = notImplemented("process._tickCallback");
+var _linkedBinding = notImplemented("process._linkedBinding");
+var domain = proxy_default.__createMock__("process.domain");
+var initgroups = notImplemented("process.initgroups");
+var moduleLoadList = [];
+var reallyExit = noop;
+var _exiting = false;
+var _events = [];
+var _eventsCount = 0;
+var _maxListeners = 0;
+var process = {
+  // @ts-expect-error
+  _events,
+  _eventsCount,
+  _exiting,
+  _maxListeners,
+  _debugEnd,
+  _debugProcess,
+  _fatalException,
+  _getActiveHandles,
+  _getActiveRequests,
+  _kill,
+  _preload_modules,
+  _rawDebug,
+  _startProfilerIdleNotifier,
+  _stopProfilerIdleNotifier,
+  _tickCallback,
+  domain,
+  initgroups,
+  moduleLoadList,
+  reallyExit,
+  exitCode,
+  abort,
+  addListener,
+  allowedNodeEnvironmentFlags,
+  hasUncaughtExceptionCaptureCallback,
+  setUncaughtExceptionCaptureCallback,
+  loadEnvFile,
+  sourceMapsEnabled,
+  throwDeprecation,
+  mainModule,
+  permission,
+  channel,
+  arch,
+  argv,
+  argv0,
+  assert: assert3,
+  binding,
+  chdir,
+  config,
+  connected,
+  constrainedMemory,
+  availableMemory,
+  cpuUsage,
+  cwd,
+  debugPort,
+  dlopen,
+  disconnect,
+  emit,
+  emitWarning,
+  env,
+  eventNames,
+  execArgv,
+  execPath,
+  exit,
+  features,
+  getBuiltinModule,
+  getegid,
+  geteuid,
+  getgid,
+  getgroups,
+  getuid,
+  getActiveResourcesInfo,
+  getMaxListeners,
+  hrtime,
+  kill,
+  listeners,
+  listenerCount,
+  memoryUsage,
+  nextTick,
+  on,
+  off,
+  once,
+  openStdin,
+  pid,
+  platform,
+  ppid,
+  prependListener,
+  prependOnceListener,
+  rawListeners,
+  release,
+  removeAllListeners,
+  removeListener,
+  report,
+  resourceUsage,
+  setegid,
+  seteuid,
+  setgid,
+  setgroups,
+  setuid,
+  setMaxListeners,
+  setSourceMapsEnabled,
+  stderr,
+  stdin,
+  stdout,
+  title,
+  traceDeprecation,
+  umask,
+  uptime,
+  version,
+  versions
+};
 
-/**
- * 
- * @param {*} email 
- * @param {*} key 
- * @returns 
- */
-async function getAccountId(email, key) {
-	try {
-		const url = 'https://api.cloudflare.com/client/v4/accounts';
-		const headers = {
-			'X-AUTH-EMAIL': email,
-			'X-AUTH-KEY': key
-		};
+// node_modules/unenv/runtime/node/process/$cloudflare.mjs
+var unpatchedGlobalThisProcess = globalThis["process"];
+var getBuiltinModule2 = unpatchedGlobalThisProcess.getBuiltinModule;
+var workerdProcess = getBuiltinModule2("node:process");
+var { env: env2, exit: exit2, nextTick: nextTick2, platform: platform2 } = workerdProcess;
+var _process = {
+  /**
+   * manually unroll unenv-polyfilled-symbols to make it tree-shakeable
+   */
+  // @ts-expect-error (not typed)
+  _debugEnd,
+  _debugProcess,
+  _events,
+  _eventsCount,
+  _exiting,
+  _fatalException,
+  _getActiveHandles,
+  _getActiveRequests,
+  _kill,
+  _linkedBinding,
+  _maxListeners,
+  _preload_modules,
+  _rawDebug,
+  _startProfilerIdleNotifier,
+  _stopProfilerIdleNotifier,
+  _tickCallback,
+  abort,
+  addListener,
+  allowedNodeEnvironmentFlags,
+  arch,
+  argv,
+  argv0,
+  assert: assert3,
+  availableMemory,
+  binding,
+  chdir,
+  config,
+  constrainedMemory,
+  cpuUsage,
+  cwd,
+  debugPort,
+  dlopen,
+  domain,
+  emit,
+  emitWarning,
+  eventNames,
+  execArgv,
+  execPath,
+  exit: exit2,
+  exitCode,
+  features,
+  getActiveResourcesInfo,
+  getMaxListeners,
+  getegid,
+  geteuid,
+  getgid,
+  getgroups,
+  getuid,
+  hasUncaughtExceptionCaptureCallback,
+  hrtime,
+  initgroups,
+  kill,
+  listenerCount,
+  listeners,
+  loadEnvFile,
+  memoryUsage,
+  moduleLoadList,
+  off,
+  on,
+  once,
+  openStdin,
+  pid,
+  platform: platform2,
+  ppid,
+  prependListener,
+  prependOnceListener,
+  rawListeners,
+  reallyExit,
+  release,
+  removeAllListeners,
+  removeListener,
+  report,
+  resourceUsage,
+  setMaxListeners,
+  setSourceMapsEnabled,
+  setUncaughtExceptionCaptureCallback,
+  setegid,
+  seteuid,
+  setgid,
+  setgroups,
+  setuid,
+  sourceMapsEnabled,
+  stderr,
+  stdin,
+  stdout,
+  title,
+  umask,
+  uptime,
+  version,
+  versions,
+  /**
+   * manually unroll workerd-polyfilled-symbols to make it tree-shakeable
+   */
+  env: env2,
+  getBuiltinModule: getBuiltinModule2,
+  nextTick: nextTick2
+};
+var cloudflare_default2 = _process;
 
-		const response = await fetch(url, { headers });
+// node_modules/wrangler/_virtual_unenv_global_polyfill-process.js
+globalThis.process = cloudflare_default2;
 
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-
-		const data = await response.json();
-		//console.error('getAccountId-->', data);
-
-		return data?.result?.[0]?.id || false;
-	} catch (error) {
-		console.error('Error fetching account ID:', error);
-		return false;
-	}
+// src/worker.mjs
+import { Buffer as Buffer2 } from "node:buffer";
+var worker_default = {
+  async fetch(request) {
+    if (request.method === "OPTIONS") {
+      return handleOPTIONS();
+    }
+    const errHandler = /* @__PURE__ */ __name((err) => {
+      console.error(err);
+      return new Response(err.message, fixCors({ status: err.status ?? 500 }));
+    }, "errHandler");
+    try {
+      const auth = request.headers.get("Authorization");
+      const apiKey = auth?.split(" ")[1];
+      const assert4 = /* @__PURE__ */ __name((success) => {
+        if (!success) {
+          throw new HttpError("The specified HTTP method is not allowed for the requested resource", 400);
+        }
+      }, "assert");
+      const { pathname } = new URL(request.url);
+      switch (true) {
+        case pathname.endsWith("/chat/completions"):
+          assert4(request.method === "POST");
+          return handleCompletions(await request.json(), apiKey).catch(errHandler);
+        case pathname.endsWith("/embeddings"):
+          assert4(request.method === "POST");
+          return handleEmbeddings(await request.json(), apiKey).catch(errHandler);
+        case pathname.endsWith("/models"):
+          assert4(request.method === "GET");
+          return handleModels(apiKey).catch(errHandler);
+        default:
+          throw new HttpError("404 Not Found", 404);
+      }
+    } catch (err) {
+      return errHandler(err);
+    }
+  }
+};
+var HttpError = class extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    this.status = status;
+  }
+};
+__name(HttpError, "HttpError");
+var fixCors = /* @__PURE__ */ __name(({ headers, status, statusText }) => {
+  headers = new Headers(headers);
+  headers.set("Access-Control-Allow-Origin", "*");
+  return { headers, status, statusText };
+}, "fixCors");
+var handleOPTIONS = /* @__PURE__ */ __name(async () => {
+  return new Response(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "*",
+      "Access-Control-Allow-Headers": "*"
+    }
+  });
+}, "handleOPTIONS");
+var BASE_URL = "https://generativelanguage.googleapis.com";
+var API_VERSION = "v1beta";
+var API_CLIENT = "genai-js/0.21.0";
+var makeHeaders = /* @__PURE__ */ __name((apiKey, more) => ({
+  "x-goog-api-client": API_CLIENT,
+  ...apiKey && { "x-goog-api-key": apiKey },
+  ...more
+}), "makeHeaders");
+async function handleModels(apiKey) {
+  const response = await fetch(`${BASE_URL}/${API_VERSION}/models`, {
+    headers: makeHeaders(apiKey)
+  });
+  let { body } = response;
+  if (response.ok) {
+    const { models } = JSON.parse(await response.text());
+    body = JSON.stringify({
+      object: "list",
+      data: models.map(({ name }) => ({
+        id: name.replace("models/", ""),
+        object: "model",
+        created: 0,
+        owned_by: ""
+      }))
+    }, null, "  ");
+  }
+  return new Response(body, fixCors(response));
 }
-
-/**
- * 
- * @param {*} accountId 
- * @param {*} accountIndex 
- * @param {*} email 
- * @param {*} key 
- * @param {*} startDate 
- * @param {*} endDate 
- * @returns 
- */
-async function getCFSum(accountId, accountIndex, email, key, startDate, endDate) {
-	try {
-		const [startDateISO, endDateISO] = [new Date(startDate), new Date(endDate)].map(d => d.toISOString());
-
-		const query = JSON.stringify({
-			query: `query getBillingMetrics($accountId: String!, $filter: AccountWorkersInvocationsAdaptiveFilter_InputObject) {
-				viewer {
-					accounts(filter: {accountTag: $accountId}) {
-						pagesFunctionsInvocationsAdaptiveGroups(limit: 1000, filter: $filter) {
-							sum {
-								requests
-							}
-						}
-						workersInvocationsAdaptive(limit: 10000, filter: $filter) {
-							sum {
-								requests
-							}
-						}
-					}
-				}
-			}`,
-			variables: {
-				accountId,
-				filter: { datetime_geq: startDateISO, datetime_leq: endDateISO }
-			},
-		});
-
-		const headers = {
-			'Content-Type': 'application/json',
-			'X-AUTH-EMAIL': email,
-			'X-AUTH-KEY': key
-		};
-
-		const response = await fetch('https://api.cloudflare.com/client/v4/graphql', {
-			method: 'POST',
-			headers,
-			body: query
-		});
-
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-
-		const res = await response.json();
-		const accounts = res?.data?.viewer?.accounts?.[accountIndex];
-
-		if (!accounts) {
-			throw new Error('找不到账户数据');
-		}
-
-		const getSumRequests = (data) => data?.reduce((total, item) => total + (item?.sum?.requests || 0), 0) || 0;
-
-		const pagesSum = getSumRequests(accounts.pagesFunctionsInvocationsAdaptiveGroups);
-		const workersSum = getSumRequests(accounts.workersInvocationsAdaptive);
-
-		return [pagesSum, workersSum];
-
-	} catch (error) {
-		console.error('Error fetching billing metrics:', error);
-		return [0, 0];
-	}
+__name(handleModels, "handleModels");
+var DEFAULT_EMBEDDINGS_MODEL = "text-embedding-004";
+async function handleEmbeddings(req, apiKey) {
+  if (typeof req.model !== "string") {
+    throw new HttpError("model is not specified", 400);
+  }
+  if (!Array.isArray(req.input)) {
+    req.input = [req.input];
+  }
+  let model;
+  if (req.model.startsWith("models/")) {
+    model = req.model;
+  } else {
+    req.model = DEFAULT_EMBEDDINGS_MODEL;
+    model = "models/" + req.model;
+  }
+  const response = await fetch(`${BASE_URL}/${API_VERSION}/${model}:batchEmbedContents`, {
+    method: "POST",
+    headers: makeHeaders(apiKey, { "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      "requests": req.input.map((text) => ({
+        model,
+        content: { parts: { text } },
+        outputDimensionality: req.dimensions
+      }))
+    })
+  });
+  let { body } = response;
+  if (response.ok) {
+    const { embeddings } = JSON.parse(await response.text());
+    body = JSON.stringify({
+      object: "list",
+      data: embeddings.map(({ values }, index) => ({
+        object: "embedding",
+        index,
+        embedding: values
+      })),
+      model: req.model
+    }, null, "  ");
+  }
+  return new Response(body, fixCors(response));
 }
-
-const API_URL = 'http://ip-api.com/json/';
-const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
-/**
- * Send message to Telegram channel
- * @param {string} type 
- * @param {string} ip I
- * @param {string} [add_data=""] 
- */
-async function sendMessage(type, ip, add_data = "") {
-	if (botToken && chatID) {
-		try {
-			const ipResponse = await fetch(`${API_URL}${ip}?lang=zh-CN`);
-			let msg = `${type}\nIP: ${ip}\n${add_data}`;
-
-			if (ipResponse.ok) {
-				const ipInfo = await ipResponse.json();
-				msg = `${type}\nIP: ${ip}\n国家: ${ipInfo.country}\n城市: ${ipInfo.city}\n组织: ${ipInfo.org}\nASN: ${ipInfo.as}\n${add_data}`;
-			} else {
-				console.error(`Failed to fetch IP info. Status: ${ipResponse.status}`);
-			}
-
-			const telegramUrl = `${TELEGRAM_API_URL}${botToken}/sendMessage`;
-			const params = new URLSearchParams({
-				chat_id: chatID,
-				parse_mode: 'HTML',
-				text: msg
-			});
-
-			await fetch(`${telegramUrl}?${params.toString()}`, {
-				method: 'GET',
-				headers: {
-					'Accept': 'text/html,application/xhtml+xml,application/xml',
-					'Accept-Encoding': 'gzip, deflate, br',
-					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36'
-				}
-			});
-
-		} catch (error) {
-			console.error('Error sending message:', error);
-		}
-	} else {
-		console.warn('botToken or chatID is missing.');
-	}
+__name(handleEmbeddings, "handleEmbeddings");
+var DEFAULT_MODEL = "gemini-1.5-pro-latest";
+async function handleCompletions(req, apiKey) {
+  let model = DEFAULT_MODEL;
+  switch (true) {
+    case typeof req.model !== "string":
+      break;
+    case req.model.startsWith("models/"):
+      model = req.model.substring(7);
+      break;
+    case req.model.startsWith("gemini-"):
+    case req.model.startsWith("learnlm-"):
+      model = req.model;
+  }
+  const TASK = req.stream ? "streamGenerateContent" : "generateContent";
+  let url = `${BASE_URL}/${API_VERSION}/models/${model}:${TASK}`;
+  if (req.stream) {
+    url += "?alt=sse";
+  }
+  const response = await fetch(url, {
+    method: "POST",
+    headers: makeHeaders(apiKey, { "Content-Type": "application/json" }),
+    body: JSON.stringify(await transformRequest(req))
+    // try
+  });
+  let body = response.body;
+  if (response.ok) {
+    let id = generateChatcmplId();
+    if (req.stream) {
+      body = response.body.pipeThrough(new TextDecoderStream()).pipeThrough(new TransformStream({
+        transform: parseStream,
+        flush: parseStreamFlush,
+        buffer: ""
+      })).pipeThrough(new TransformStream({
+        transform: toOpenAiStream,
+        flush: toOpenAiStreamFlush,
+        streamIncludeUsage: req.stream_options?.include_usage,
+        model,
+        id,
+        last: []
+      })).pipeThrough(new TextEncoderStream());
+    } else {
+      body = await response.text();
+      body = processCompletionsResponse(JSON.parse(body), model, id);
+    }
+  }
+  return new Response(body, fixCors(response));
 }
-
-
-/** -------------------processing logic-------------------------------- */
-/**
- * Handles channel over WebSocket requests by creating a WebSocket pair, accepting the WebSocket connection, and processing the channel header.
- * @param {import("@cloudflare/workers-types").Request} request The incoming request object.
- * @returns {Promise<Response>} A Promise that resolves to a WebSocket response object.
- */
-async function channelOverWSHandler(request) {
-	const webSocketPair = new WebSocketPair();
-	const [client, webSocket] = Object.values(webSocketPair);
-	webSocket.accept();
-
-	let address = '';
-	let portWithRandomLog = '';
-	let currentDate = new Date();
-	const log = (/** @type {string} */ info, /** @type {string | undefined} */ event) => {
-		console.log(`[${currentDate} ${address}:${portWithRandomLog}] ${info}`, event || '');
-	};
-	const earlyDataHeader = request.headers.get('sec-websocket-protocol') || '';
-	const readableWebSocketStream = makeReadableWebSocketStream(webSocket, earlyDataHeader, log);
-
-	/** @type {{ value: import("@cloudflare/workers-types").Socket | null}}*/
-	let remoteSocketWapper = {
-		value: null,
-	};
-	let udpStreamWrite = null;
-	let isDns = false;
-
-	// ws --> remote
-	readableWebSocketStream.pipeTo(new WritableStream({
-		async write(chunk, controller) {
-			if (isDns && udpStreamWrite) {
-				return udpStreamWrite(chunk);
-			}
-			if (remoteSocketWapper.value) {
-				const writer = remoteSocketWapper.value.writable.getWriter()
-				await writer.write(chunk);
-				writer.releaseLock();
-				return;
-			}
-
-			const {
-				hasError,
-				//message,
-				portRemote = 443,
-				addressRemote = '',
-				rawDataIndex,
-				channelVersion = new Uint8Array([0, 0]),
-				isUDP,
-				addressType,
-			} = processchannelHeader(chunk, userID);
-			address = addressRemote;
-			portWithRandomLog = `${portRemote} ${isUDP ? 'udp' : 'tcp'} `;
-
-			if (hasError) {
-				throw new Error(message);
-			}
-
-			// If UDP and not DNS port, close it
-			if (isUDP && portRemote !== 53) {
-				throw new Error('UDP proxy only enabled for DNS which is port 53');
-			}
-
-			if (isUDP && portRemote === 53) {
-				isDns = true;
-			}
-
-			const channelResponseHeader = new Uint8Array([channelVersion[0], 0]);
-			const rawClientData = chunk.slice(rawDataIndex);
-
-			if (isDns) {
-				const { write } = await handleUDPOutBound(webSocket, channelResponseHeader, log);
-				udpStreamWrite = write;
-				udpStreamWrite(rawClientData);
-				return;
-			}
-			log(`processchannelHeader-->${addressType} Processing TCP outbound connection ${addressRemote}:${portRemote}`);
-
-			handleTCPOutBound(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType);
-		},
-		close() {
-			log(`readableWebSocketStream is close`);
-		},
-		abort(reason) {
-			log(`readableWebSocketStream is abort`, JSON.stringify(reason));
-		},
-	})).catch((err) => {
-		log('readableWebSocketStream pipeTo error', err);
-	});
-
-	return new Response(null, {
-		status: 101,
-		webSocket: client,
-	});
+__name(handleCompletions, "handleCompletions");
+var harmCategory = [
+  "HARM_CATEGORY_HATE_SPEECH",
+  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+  "HARM_CATEGORY_DANGEROUS_CONTENT",
+  "HARM_CATEGORY_HARASSMENT",
+  "HARM_CATEGORY_CIVIC_INTEGRITY"
+];
+var safetySettings = harmCategory.map((category) => ({
+  category,
+  threshold: "BLOCK_NONE"
+}));
+var fieldsMap = {
+  stop: "stopSequences",
+  n: "candidateCount",
+  // not for streaming
+  max_tokens: "maxOutputTokens",
+  max_completion_tokens: "maxOutputTokens",
+  temperature: "temperature",
+  top_p: "topP",
+  top_k: "topK",
+  // non-standard
+  frequency_penalty: "frequencyPenalty",
+  presence_penalty: "presencePenalty"
+};
+var transformConfig = /* @__PURE__ */ __name((req) => {
+  let cfg = {};
+  for (let key in req) {
+    const matchedKey = fieldsMap[key];
+    if (matchedKey) {
+      cfg[matchedKey] = req[key];
+    }
+  }
+  if (req.response_format) {
+    switch (req.response_format.type) {
+      case "json_schema":
+        cfg.responseSchema = req.response_format.json_schema?.schema;
+        if (cfg.responseSchema && "enum" in cfg.responseSchema) {
+          cfg.responseMimeType = "text/x.enum";
+          break;
+        }
+      case "json_object":
+        cfg.responseMimeType = "application/json";
+        break;
+      case "text":
+        cfg.responseMimeType = "text/plain";
+        break;
+      default:
+        throw new HttpError("Unsupported response_format.type", 400);
+    }
+  }
+  return cfg;
+}, "transformConfig");
+var parseImg = /* @__PURE__ */ __name(async (url) => {
+  let mimeType, data;
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText} (${url})`);
+      }
+      mimeType = response.headers.get("content-type");
+      data = Buffer2.from(await response.arrayBuffer()).toString("base64");
+    } catch (err) {
+      throw new Error("Error fetching image: " + err.toString());
+    }
+  } else {
+    const match = url.match(/^data:(?<mimeType>.*?)(;base64)?,(?<data>.*)$/);
+    if (!match) {
+      throw new Error("Invalid image data: " + url);
+    }
+    ({ mimeType, data } = match.groups);
+  }
+  return {
+    inlineData: {
+      mimeType,
+      data
+    }
+  };
+}, "parseImg");
+var transformMsg = /* @__PURE__ */ __name(async ({ role, content }) => {
+  const parts = [];
+  if (!Array.isArray(content)) {
+    parts.push({ text: content });
+    return { role, parts };
+  }
+  for (const item of content) {
+    switch (item.type) {
+      case "text":
+        parts.push({ text: item.text });
+        break;
+      case "image_url":
+        parts.push(await parseImg(item.image_url.url));
+        break;
+      case "input_audio":
+        parts.push({
+          inlineData: {
+            mimeType: "audio/" + item.input_audio.format,
+            data: item.input_audio.data
+          }
+        });
+        break;
+      default:
+        throw new TypeError(`Unknown "content" item type: "${item.type}"`);
+    }
+  }
+  return { role, parts };
+}, "transformMsg");
+var transformMessages = /* @__PURE__ */ __name(async (messages) => {
+  if (!messages) {
+    return;
+  }
+  const contents = [];
+  let system_instruction;
+  for (const item of messages) {
+    if (item.role === "system") {
+      delete item.role;
+      system_instruction = await transformMsg(item);
+    } else {
+      item.role = item.role === "assistant" ? "model" : "user";
+      contents.push(await transformMsg(item));
+    }
+  }
+  if (system_instruction && contents.length === 0) {
+    contents.push({ role: "model", parts: { text: " " } });
+  }
+  return { system_instruction, contents };
+}, "transformMessages");
+var transformRequest = /* @__PURE__ */ __name(async (req) => ({
+  ...await transformMessages(req.messages),
+  safetySettings,
+  generationConfig: transformConfig(req)
+}), "transformRequest");
+var generateChatcmplId = /* @__PURE__ */ __name(() => {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const randomChar = /* @__PURE__ */ __name(() => characters[Math.floor(Math.random() * characters.length)], "randomChar");
+  return "chatcmpl-" + Array.from({ length: 29 }, randomChar).join("");
+}, "generateChatcmplId");
+var reasonsMap = {
+  //https://ai.google.dev/api/rest/v1/GenerateContentResponse#finishreason
+  //"FINISH_REASON_UNSPECIFIED": // Default value. This value is unused.
+  "STOP": "stop",
+  "MAX_TOKENS": "length",
+  "SAFETY": "content_filter",
+  "RECITATION": "content_filter"
+  //"OTHER": "OTHER",
+  // :"function_call",
+};
+var SEP = "\n\n|>";
+var transformCandidates = /* @__PURE__ */ __name((key, cand) => ({
+  index: cand.index || 0,
+  // 0-index is absent in new -002 models response
+  [key]: {
+    role: "assistant",
+    content: cand.content?.parts.map((p) => p.text).join(SEP)
+  },
+  logprobs: null,
+  finish_reason: reasonsMap[cand.finishReason] || cand.finishReason
+}), "transformCandidates");
+var transformCandidatesMessage = transformCandidates.bind(null, "message");
+var transformCandidatesDelta = transformCandidates.bind(null, "delta");
+var transformUsage = /* @__PURE__ */ __name((data) => ({
+  completion_tokens: data.candidatesTokenCount,
+  prompt_tokens: data.promptTokenCount,
+  total_tokens: data.totalTokenCount
+}), "transformUsage");
+var processCompletionsResponse = /* @__PURE__ */ __name((data, model, id) => {
+  return JSON.stringify({
+    id,
+    choices: data.candidates.map(transformCandidatesMessage),
+    created: Math.floor(Date.now() / 1e3),
+    model,
+    //system_fingerprint: "fp_69829325d0",
+    object: "chat.completion",
+    usage: transformUsage(data.usageMetadata)
+  });
+}, "processCompletionsResponse");
+var responseLineRE = /^data: (.*)(?:\n\n|\r\r|\r\n\r\n)/;
+async function parseStream(chunk, controller) {
+  chunk = await chunk;
+  if (!chunk) {
+    return;
+  }
+  this.buffer += chunk;
+  do {
+    const match = this.buffer.match(responseLineRE);
+    if (!match) {
+      break;
+    }
+    controller.enqueue(match[1]);
+    this.buffer = this.buffer.substring(match[0].length);
+  } while (true);
 }
-
-/**
- * Handles outbound TCP connections.
- *
- * @param {any} remoteSocket
- * @param {string} addressRemote The remote address to connect to.
- * @param {number} portRemote The remote port to connect to.
- * @param {Uint8Array} rawClientData The raw client data to write.
- * @param {import("@cloudflare/workers-types").WebSocket} webSocket The WebSocket to pass the remote socket to.
- * @param {Uint8Array} channelResponseHeader The channel response header.
- * @param {function} log The logging function.
- * @returns {Promise<void>} The remote socket.
- */
-async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawClientData, webSocket, channelResponseHeader, log, addressType,) {
-
-	/**
-	 * Connects to a given address and port and writes data to the socket.
-	 * @param {string} address The address to connect to.
-	 * @param {number} port The port to connect to.
-	 * @returns {Promise<import("@cloudflare/workers-types").Socket>} A Promise that resolves to the connected socket.
-	 */
-	async function connectAndWrite(address, port, socks = false) {
-		/** @type {import("@cloudflare/workers-types").Socket} */
-		const tcpSocket = socks ? await socks5Connect(addressType, address, port, log)
-			: connect({
-				hostname: address,
-				port: port,
-			});
-		remoteSocket.value = tcpSocket;
-		console.log(`connectAndWrite-${socks} connected to ${address}:${port}`);
-		const writer = tcpSocket.writable.getWriter();
-		await writer.write(rawClientData);
-		writer.releaseLock();
-		return tcpSocket;
-	}
-
-	/**
-	 * Retries connecting to the remote address and port if the Cloudflare socket has no incoming data.
-	 * @returns {Promise<void>} A Promise that resolves when the retry is complete.
-	 */
-	async function retry() {
-		const tcpSocket = socks5Enable ? await connectAndWrite(addressRemote, portRemote, true) : await connectAndWrite(proxyIP || addressRemote, proxyPort || portRemote);
-
-		console.log(`retry-${socks5Enable} connected to ${addressRemote}:${portRemote}`);
-		tcpSocket.closed.catch(error => {
-			console.log('retry tcpSocket closed error', error);
-		}).finally(() => {
-			safeCloseWebSocket(webSocket);
-		})
-		remoteSocketToWS(tcpSocket, webSocket, channelResponseHeader, null, log);
-	}
-
-	const tcpSocket = await connectAndWrite(addressRemote, portRemote);
-
-	// when remoteSocket is ready, pass to websocket
-	// remote--> ws
-	remoteSocketToWS(tcpSocket, webSocket, channelResponseHeader, retry, log);
+__name(parseStream, "parseStream");
+async function parseStreamFlush(controller) {
+  if (this.buffer) {
+    console.error("Invalid data:", this.buffer);
+    controller.enqueue(this.buffer);
+  }
 }
-
-/**
- * Creates a readable stream from a WebSocket server, allowing for data to be read from the WebSocket.
- * @param {import("@cloudflare/workers-types").WebSocket} webSocketServer The WebSocket server to create the readable stream from.
- * @param {string} earlyDataHeader The header containing early data for WebSocket 0-RTT.
- * @param {(info: string)=> void} log The logging function.
- * @returns {ReadableStream} A readable stream that can be used to read data from the WebSocket.
- */
-function makeReadableWebSocketStream(webSocketServer, earlyDataHeader, log) {
-	let readableStreamCancel = false;
-	const stream = new ReadableStream({
-		start(controller) {
-			webSocketServer.addEventListener('message', (event) => {
-				const message = event.data;
-				controller.enqueue(message);
-			});
-
-			webSocketServer.addEventListener('close', () => {
-				safeCloseWebSocket(webSocketServer);
-				controller.close();
-			});
-
-			webSocketServer.addEventListener('error', (err) => {
-				log('webSocketServer has error');
-				controller.error(err);
-			});
-			const { earlyData, error } = base64ToArrayBuffer(earlyDataHeader);
-			if (error) {
-				controller.error(error);
-			} else if (earlyData) {
-				controller.enqueue(earlyData);
-			}
-		},
-
-		pull(controller) {
-			// if ws can stop read if stream is full, we can implement backpressure
-			// https://streams.spec.whatwg.org/#example-rs-push-backpressure
-		},
-
-		cancel(reason) {
-			log(`ReadableStream was canceled, due to ${reason}`)
-			readableStreamCancel = true;
-			safeCloseWebSocket(webSocketServer);
-		}
-	});
-
-	return stream;
+__name(parseStreamFlush, "parseStreamFlush");
+function transformResponseStream(data, stop, first) {
+  const item = transformCandidatesDelta(data.candidates[0]);
+  if (stop) {
+    item.delta = {};
+  } else {
+    item.finish_reason = null;
+  }
+  if (first) {
+    item.delta.content = "";
+  } else {
+    delete item.delta.role;
+  }
+  const output = {
+    id: this.id,
+    choices: [item],
+    created: Math.floor(Date.now() / 1e3),
+    model: this.model,
+    //system_fingerprint: "fp_69829325d0",
+    object: "chat.completion.chunk"
+  };
+  if (data.usageMetadata && this.streamIncludeUsage) {
+    output.usage = stop ? transformUsage(data.usageMetadata) : null;
+  }
+  return "data: " + JSON.stringify(output) + delimiter;
 }
-
-// https://xtls.github.io/development/protocols/channel.html
-
-/**
- * Processes the channel header buffer and returns an object with the relevant information.
- * @param {ArrayBuffer} channelBuffer The channel header buffer to process.
- * @param {string} userID The user ID to validate against the UUID in the channel header.
- * @returns {{
- *  hasError: boolean,
- *  message?: string,
- *  addressRemote?: string,
- *  addressType?: number,
- *  portRemote?: number,
- *  rawDataIndex?: number,
- *  channelVersion?: Uint8Array,
- *  isUDP?: boolean
- * }} An object with the relevant information extracted from the channel header buffer.
- */
-function processchannelHeader(channelBuffer, userID) {
-	if (channelBuffer.byteLength < 24) {
-		return {
-			hasError: true,
-			message: 'invalid data',
-		};
-	}
-
-	const version = new Uint8Array(channelBuffer.slice(0, 1));
-	let isValidUser = false;
-	let isUDP = false;
-	const slicedBuffer = new Uint8Array(channelBuffer.slice(1, 17));
-	const slicedBufferString = stringify(slicedBuffer);
-	// check if userID is valid uuid or uuids split by , and contains userID in it otherwise return error message to console
-	const uuids = userID.includes(',') ? userID.split(",") : [userID];
-	// uuid_validator(hostName, slicedBufferString);
-
-
-	// isValidUser = uuids.some(userUuid => slicedBufferString === userUuid.trim());
-	isValidUser = uuids.some(userUuid => slicedBufferString === userUuid.trim()) || uuids.length === 1 && slicedBufferString === uuids[0].trim();
-
-	console.log(`userID: ${slicedBufferString}`);
-
-	if (!isValidUser) {
-		return {
-			hasError: true,
-			message: 'invalid user',
-		};
-	}
-
-	const optLength = new Uint8Array(channelBuffer.slice(17, 18))[0];
-	//skip opt for now
-
-	const command = new Uint8Array(
-		channelBuffer.slice(18 + optLength, 18 + optLength + 1)
-	)[0];
-
-	// 0x01 TCP
-	// 0x02 UDP
-	// 0x03 MUX
-	if (command === 1) {
-		isUDP = false;
-	} else if (command === 2) {
-		isUDP = true;
-	} else {
-		return {
-			hasError: true,
-			message: `command ${command} is not support, command 01-tcp,02-udp,03-mux`,
-		};
-	}
-	const portIndex = 18 + optLength + 1;
-	const portBuffer = channelBuffer.slice(portIndex, portIndex + 2);
-	// port is big-Endian in raw data etc 80 == 0x005d
-	const portRemote = new DataView(portBuffer).getUint16(0);
-
-	let addressIndex = portIndex + 2;
-	const addressBuffer = new Uint8Array(
-		channelBuffer.slice(addressIndex, addressIndex + 1)
-	);
-
-	// 1--> ipv4  addressLength =4
-	// 2--> domain name addressLength=addressBuffer[1]
-	// 3--> ipv6  addressLength =16
-	const addressType = addressBuffer[0];
-	let addressLength = 0;
-	let addressValueIndex = addressIndex + 1;
-	let addressValue = '';
-	switch (addressType) {
-		case 1:
-			addressLength = 4;
-			addressValue = new Uint8Array(
-				channelBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
-			).join('.');
-			break;
-		case 2:
-			addressLength = new Uint8Array(
-				channelBuffer.slice(addressValueIndex, addressValueIndex + 1)
-			)[0];
-			addressValueIndex += 1;
-			addressValue = new TextDecoder().decode(
-				channelBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
-			);
-			break;
-		case 3:
-			addressLength = 16;
-			const dataView = new DataView(
-				channelBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
-			);
-			// 2001:0db8:85a3:0000:0000:8a2e:0370:7334
-			const ipv6 = [];
-			for (let i = 0; i < 8; i++) {
-				ipv6.push(dataView.getUint16(i * 2).toString(16));
-			}
-			addressValue = ipv6.join(':');
-			// seems no need add [] for ipv6
-			break;
-		default:
-			return {
-				hasError: true,
-				message: `invild  addressType is ${addressType}`,
-			};
-	}
-	if (!addressValue) {
-		return {
-			hasError: true,
-			message: `addressValue is empty, addressType is ${addressType}`,
-		};
-	}
-
-	return {
-		hasError: false,
-		addressRemote: addressValue,
-		portRemote,
-		rawDataIndex: addressValueIndex + addressLength,
-		channelVersion: version,
-		isUDP,
-		addressType,
-	};
+__name(transformResponseStream, "transformResponseStream");
+var delimiter = "\n\n";
+async function toOpenAiStream(chunk, controller) {
+  const transform = transformResponseStream.bind(this);
+  const line = await chunk;
+  if (!line) {
+    return;
+  }
+  let data;
+  try {
+    data = JSON.parse(line);
+  } catch (err) {
+    console.error(line);
+    console.error(err);
+    const length = this.last.length || 1;
+    const candidates = Array.from({ length }, (_, index) => ({
+      finishReason: "error",
+      content: { parts: [{ text: err }] },
+      index
+    }));
+    data = { candidates };
+  }
+  const cand = data.candidates[0];
+  console.assert(data.candidates.length === 1, "Unexpected candidates count: %d", data.candidates.length);
+  cand.index = cand.index || 0;
+  if (!this.last[cand.index]) {
+    controller.enqueue(transform(data, false, "first"));
+  }
+  this.last[cand.index] = data;
+  if (cand.content) {
+    controller.enqueue(transform(data));
+  }
 }
-
-/**
- * Converts a remote socket to a WebSocket connection.
- * @param {import("@cloudflare/workers-types").Socket} remoteSocket The remote socket to convert.
- * @param {import("@cloudflare/workers-types").WebSocket} webSocket The WebSocket to connect to.
- * @param {ArrayBuffer | null} channelResponseHeader The channel response header.
- * @param {(() => Promise<void>) | null} retry The function to retry the connection if it fails.
- * @param {(info: string) => void} log The logging function.
- * @returns {Promise<void>} A Promise that resolves when the conversion is complete.
- */
-async function remoteSocketToWS(remoteSocket, webSocket, channelResponseHeader, retry, log) {
-	// remote--> ws
-	let remoteChunkCount = 0;
-	let chunks = [];
-	/** @type {ArrayBuffer | null} */
-	let channelHeader = channelResponseHeader;
-	let hasIncomingData = false; // check if remoteSocket has incoming data
-	await remoteSocket.readable
-		.pipeTo(
-			new WritableStream({
-				start() {
-				},
-				/**
-				 *
-				 * @param {Uint8Array} chunk
-				 * @param {*} controller
-				 */
-				async write(chunk, controller) {
-					hasIncomingData = true;
-					remoteChunkCount++;
-					if (webSocket.readyState !== WS_READY_STATE_OPEN) {
-						controller.error(
-							'webSocket.readyState is not open, maybe close'
-						);
-					}
-					if (channelHeader) {
-						webSocket.send(await new Blob([channelHeader, chunk]).arrayBuffer());
-						channelHeader = null;
-					} else {
-						// console.log(`remoteSocketToWS send chunk ${chunk.byteLength}`);
-						// seems no need rate limit this, CF seems fix this??..
-						// if (remoteChunkCount > 20000) {
-						// 	// cf one package is 4096 byte(4kb),  4096 * 20000 = 80M
-						// 	await delay(1);
-						// }
-						webSocket.send(chunk);
-					}
-				},
-				close() {
-					log(`remoteConnection!.readable is close with hasIncomingData is ${hasIncomingData}`);
-					// safeCloseWebSocket(webSocket); // no need server close websocket frist for some case will casue HTTP ERR_CONTENT_LENGTH_MISMATCH issue, client will send close event anyway.
-				},
-				abort(reason) {
-					console.error(`remoteConnection!.readable abort`, reason);
-				},
-			})
-		)
-		.catch((error) => {
-			console.error(
-				`remoteSocketToWS has exception `,
-				error.stack || error
-			);
-			safeCloseWebSocket(webSocket);
-		});
-
-	// seems is cf connect socket have error,
-	// 1. Socket.closed will have error
-	// 2. Socket.readable will be close without any data coming
-	if (hasIncomingData === false && retry) {
-		log(`retry`)
-		retry();
-	}
+__name(toOpenAiStream, "toOpenAiStream");
+async function toOpenAiStreamFlush(controller) {
+  const transform = transformResponseStream.bind(this);
+  if (this.last.length > 0) {
+    for (const data of this.last) {
+      controller.enqueue(transform(data, "stop"));
+    }
+    controller.enqueue("data: [DONE]" + delimiter);
+  }
 }
-
-const WS_READY_STATE_OPEN = 1;
-const WS_READY_STATE_CLOSING = 2;
-/**
- * Closes a WebSocket connection safely without throwing exceptions.
- * @param {import("@cloudflare/workers-types").WebSocket} socket The WebSocket connection to close.
- */
-function safeCloseWebSocket(socket) {
-	try {
-		if (socket.readyState === WS_READY_STATE_OPEN || socket.readyState === WS_READY_STATE_CLOSING) {
-			socket.close();
-		}
-	} catch (error) {
-		console.error('safeCloseWebSocket error', error);
-	}
-}
-
-/**
- * Handles outbound UDP traffic by transforming the data into DNS queries and sending them over a WebSocket connection.
- * @param {import("@cloudflare/workers-types").WebSocket} webSocket The WebSocket connection to send the DNS queries over.
- * @param {ArrayBuffer} channelResponseHeader The channel response header.
- * @param {(string) => void} log The logging function.
- * @returns {{write: (chunk: Uint8Array) => void}} An object with a write method that accepts a Uint8Array chunk to write to the transform stream.
- */
-async function handleUDPOutBound(webSocket, channelResponseHeader, log) {
-
-	let ischannelHeaderSent = false;
-	const transformStream = new TransformStream({
-		start(controller) {
-
-		},
-		transform(chunk, controller) {
-			// udp message 2 byte is the the length of udp data
-			// TODO: this should have bug, beacsue maybe udp chunk can be in two websocket message
-			for (let index = 0; index < chunk.byteLength;) {
-				const lengthBuffer = chunk.slice(index, index + 2);
-				const udpPakcetLength = new DataView(lengthBuffer).getUint16(0);
-				const udpData = new Uint8Array(
-					chunk.slice(index + 2, index + 2 + udpPakcetLength)
-				);
-				index = index + 2 + udpPakcetLength;
-				controller.enqueue(udpData);
-			}
-		},
-		flush(controller) {
-		}
-	});
-
-	// only handle dns udp for now
-	transformStream.readable.pipeTo(new WritableStream({
-		async write(chunk) {
-			const resp = await fetch(dohURL, // dns server url
-				{
-					method: 'POST',
-					headers: {
-						'content-type': 'application/dns-message',
-					},
-					body: chunk,
-				})
-			const dnsQueryResult = await resp.arrayBuffer();
-			const udpSize = dnsQueryResult.byteLength;
-			// console.log([...new Uint8Array(dnsQueryResult)].map((x) => x.toString(16)));
-			const udpSizeBuffer = new Uint8Array([(udpSize >> 8) & 0xff, udpSize & 0xff]);
-			if (webSocket.readyState === WS_READY_STATE_OPEN) {
-				log(`doh success and dns message length is ${udpSize}`);
-				if (ischannelHeaderSent) {
-					webSocket.send(await new Blob([udpSizeBuffer, dnsQueryResult]).arrayBuffer());
-				} else {
-					webSocket.send(await new Blob([channelResponseHeader, udpSizeBuffer, dnsQueryResult]).arrayBuffer());
-					ischannelHeaderSent = true;
-				}
-			}
-		}
-	})).catch((error) => {
-		log('dns udp has error' + error)
-	});
-
-	const writer = transformStream.writable.getWriter();
-
-	return {
-		/**
-		 *
-		 * @param {Uint8Array} chunk
-		 */
-		write(chunk) {
-			writer.write(chunk);
-		}
-	};
-}
-
-/**
- * Handles outbound UDP traffic by transforming the data into DNS queries and sending them over a WebSocket connection.
- * @param {ArrayBuffer} udpChunk - DNS query data sent from the client.
- * @param {import("@cloudflare/workers-types").WebSocket} webSocket - The WebSocket connection to send the DNS queries over.
- * @param {ArrayBuffer} channelResponseHeader - The channel response header.
- * @param {(string) => void} log - The logging function.
- * @returns {{write: (chunk: Uint8Array) => void}} An object with a write method that accepts a Uint8Array chunk to write to the transform stream.
- */
-async function handleDNSQuery(udpChunk, webSocket, channelResponseHeader, log) {
-	try {
-		const dnsServer = '8.8.4.4';
-		const dnsPort = 53;
-		let channelHeader = channelResponseHeader;
-
-		const tcpSocket = connect({ hostname: dnsServer, port: dnsPort });
-		log(`Connected to ${dnsServer}:${dnsPort}`);
-
-		const writer = tcpSocket.writable.getWriter();
-		await writer.write(udpChunk);
-		writer.releaseLock();
-
-		await tcpSocket.readable.pipeTo(new WritableStream({
-			async write(chunk) {
-				if (webSocket.readyState === WS_READY_STATE_OPEN) {
-					const dataToSend = channelHeader ? await new Blob([channelHeader, chunk]).arrayBuffer() : chunk;
-					webSocket.send(dataToSend);
-					channelHeader = null;
-				}
-			},
-			close() {
-				log(`TCP connection to DNS server (${dnsServer}) closed`);
-			},
-			abort(reason) {
-				console.error(`TCP connection to DNS server (${dnsServer}) aborted`, reason);
-			},
-		}));
-	} catch (error) {
-		console.error(`Exception in handleDNSQuery function: ${error.message}`);
-	}
-}
-
-
-async function socks5Connect(ipType, remoteIp, remotePort, log) {
-	const { username, password, hostname, port } = parsedSocks5;
-	const socket = connect({ hostname, port });
-	const writer = socket.writable.getWriter();
-	const reader = socket.readable.getReader();
-	const encoder = new TextEncoder();
-
-	const sendSocksGreeting = async () => {
-		const greeting = new Uint8Array([5, 2, 0, 2]);
-		await writer.write(greeting);
-		console.log('SOCKS5 greeting sent');
-	};
-
-	const handleAuthResponse = async () => {
-		const res = (await reader.read()).value;
-		if (res[1] === 0x02) {
-			console.log("SOCKS5 server requires authentication");
-			if (!username || !password) {
-				console.log("Please provide username and password");
-				throw new Error("Authentication required");
-			}
-			const authRequest = new Uint8Array([
-				1, username.length, ...encoder.encode(username),
-				password.length, ...encoder.encode(password)
-			]);
-			await writer.write(authRequest);
-			const authResponse = (await reader.read()).value;
-			if (authResponse[0] !== 0x01 || authResponse[1] !== 0x00) {
-				console.log("SOCKS5 server authentication failed");
-				throw new Error("Authentication failed");
-			}
-		}
-	};
-
-	const sendSocksRequest = async () => {
-		let DSTADDR;
-		switch (ipType) {
-			case 1:
-				DSTADDR = new Uint8Array([1, ...remoteIp.split('.').map(Number)]);
-				break;
-			case 2:
-				DSTADDR = new Uint8Array([3, remoteIp.length, ...encoder.encode(remoteIp)]);
-				break;
-			case 3:
-				DSTADDR = new Uint8Array([4, ...remoteIp.split(':').flatMap(x => [
-					parseInt(x.slice(0, 2), 16), parseInt(x.slice(2), 16)
-				])]);
-				break;
-			default:
-				console.log(`Invalid address type: ${ipType}`);
-				throw new Error("Invalid address type");
-		}
-		const socksRequest = new Uint8Array([5, 1, 0, ...DSTADDR, remotePort >> 8, remotePort & 0xff]);
-		await writer.write(socksRequest);
-		console.log('SOCKS5 request sent');
-
-		const response = (await reader.read()).value;
-		if (response[1] !== 0x00) {
-			console.log("SOCKS5 connection failed");
-			throw new Error("Connection failed");
-		}
-		console.log("SOCKS5 connection established");
-	};
-
-	try {
-		await sendSocksGreeting();
-		await handleAuthResponse();
-		await sendSocksRequest();
-	} catch (error) {
-		console.log(error.message);
-		return null; // Return null on failure
-	} finally {
-		writer.releaseLock();
-		reader.releaseLock();
-	}
-	return socket;
-}
-
-
-/** -------------------Home page-------------------------------- */
-async function nginx() {
-	const text = `
-	<!DOCTYPE html>
-	<html>
-	<head>
-	<meta charset="UTF-8">
-	<title>Welcome to nginx!</title>
-	<style>
-		body {
-			width: 35em;
-			margin: 0 auto;
-			font-family: Tahoma, Verdana, Arial, sans-serif;
-		}
-	</style>
-	</head>
-	<body>
-	<h1>Welcome to nginx!</h1>
-	<p>If you see this page, the nginx web server is successfully installed and
-	working. Further configuration is required.</p>
-
-	<p>For online documentation and support please refer to
-	<a href="http://nginx.org/">nginx.org</a>.<br/>
-	Commercial support is available at
-	<a href="http://nginx.com/">nginx.com</a>.</p>
-
-	<p><em>Thank you for using nginx.</em></p>
-	</body>
-	</html>
-	`
-	return text;
-}
-
+__name(toOpenAiStreamFlush, "toOpenAiStreamFlush");
+export {
+  worker_default as default
+};
+//# sourceMappingURL=worker.js.map
